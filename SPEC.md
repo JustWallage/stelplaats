@@ -20,22 +20,22 @@ A home-management webapp for two users: track when things were cleaned, when pla
 
 ## 2. Stack
 
-| Layer | Choice |
-|---|---|
-| Platform | Cloudflare **Workers + static assets** (single worker, single `wrangler.jsonc`) |
-| API | **Hono** (router + middleware) on the worker fetch handler |
-| Realtime | **`WebsocketDO`** Durable Object, same worker, hibernation API |
-| Database | **D1** + **Drizzle ORM** (`drizzle-kit generate` → SQL migrations → `wrangler d1 migrations apply`) |
-| Validation / contracts | **Zod** schemas in `shared/`, inferred types used by both frontend and worker |
-| Frontend | **React 19 + Vite 7** (official `@cloudflare/vite-plugin`), TypeScript strict, **Tailwind v4** (`@tailwindcss/vite`), **shadcn/ui**, **Lucide**, **React Router 7** |
-| Data fetching | Lightweight custom hooks (SWR-style cache + WebSocket-triggered revalidation, iglympics pattern) |
-| Auth | **Cloudflare Access** (Google IdP), allowlist in Terraform; identity resolved in a single Hono middleware |
-| IaC | **Terraform** ~1.12, Cloudflare provider 5.x, state in R2 |
-| CI/CD | GitHub Actions, trunk-based, reusable `workflow_call` jobs, ephemeral E2E (jaw-finance pattern) |
-| Unit tests | **Vitest** + `@cloudflare/vitest-pool-workers` (worker code runs in real workerd) |
-| E2E | **Playwright**, single command, auto-starts dev server |
-| Quality gates | ESLint 9 (typescript-eslint strict-type-checked), Prettier, **knip**, **jscpd**, Husky pre-commit |
-| Tooling | pnpm, Node 22, ESM |
+| Layer                  | Choice                                                                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform               | Cloudflare **Workers + static assets** (single worker, single `wrangler.jsonc`)                                                                                     |
+| API                    | **Hono** (router + middleware) on the worker fetch handler                                                                                                          |
+| Realtime               | **`WebsocketDO`** Durable Object, same worker, hibernation API                                                                                                      |
+| Database               | **D1** + **Drizzle ORM** (`drizzle-kit generate` → SQL migrations → `wrangler d1 migrations apply`)                                                                 |
+| Validation / contracts | **Zod** schemas in `shared/`, inferred types used by both frontend and worker                                                                                       |
+| Frontend               | **React 19 + Vite 7** (official `@cloudflare/vite-plugin`), TypeScript strict, **Tailwind v4** (`@tailwindcss/vite`), **shadcn/ui**, **Lucide**, **React Router 7** |
+| Data fetching          | Lightweight custom hooks (SWR-style cache + WebSocket-triggered revalidation, iglympics pattern)                                                                    |
+| Auth                   | **Cloudflare Access** (Google IdP), allowlist in Terraform; identity resolved in a single Hono middleware                                                           |
+| IaC                    | **Terraform** ~1.12, Cloudflare provider 5.x, state in R2                                                                                                           |
+| CI/CD                  | GitHub Actions, trunk-based, reusable `workflow_call` jobs, ephemeral E2E (jaw-finance pattern)                                                                     |
+| Unit tests             | **Vitest** + `@cloudflare/vitest-pool-workers` (worker code runs in real workerd)                                                                                   |
+| E2E                    | **Playwright**, single command, auto-starts dev server                                                                                                              |
+| Quality gates          | ESLint 9 (typescript-eslint strict-type-checked), Prettier, **knip**, **jscpd**, Husky pre-commit                                                                   |
+| Tooling                | pnpm, Node 22, ESM                                                                                                                                                  |
 
 Versions: latest stable at scaffold time; majors as listed above.
 
@@ -97,18 +97,20 @@ One unified model covers cleaning and plants; `kind` keeps the UI views separate
 // db/schema.ts
 export const tasks = sqliteTable("tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),                  // "Vacuum living room", "Water monstera"
+  title: text("title").notNull(), // "Vacuum living room", "Water monstera"
   kind: text("kind", { enum: ["cleaning", "plants"] }).notNull(),
-  location: text("location").notNull(),            // room / plant spot
-  intervalDays: integer("interval_days"),          // null = ad-hoc, no due date
+  location: text("location").notNull(), // room / plant spot
+  intervalDays: integer("interval_days"), // null = ad-hoc, no due date
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   archivedAt: integer("archived_at", { mode: "timestamp" }),
 });
 
 export const completions = sqliteTable("completions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  taskId: integer("task_id").notNull().references(() => tasks.id),
-  doneBy: text("done_by").notNull(),               // user email
+  taskId: integer("task_id")
+    .notNull()
+    .references(() => tasks.id),
+  doneBy: text("done_by").notNull(), // user email
   doneAt: integer("done_at", { mode: "timestamp" }).notNull(),
   note: text("note"),
 });
@@ -122,17 +124,17 @@ export const completions = sqliteTable("completions", {
 
 All request/response bodies validated with Zod schemas from `shared/api.ts`; handlers use the inferred types.
 
-| Route | Purpose |
-|---|---|
-| `GET /api/health` | auth/liveness check (used by frontend AuthGate) |
-| `GET /api/me` | current user email |
-| `GET /api/tasks` | all active tasks, each with `lastCompletion` and computed due state |
-| `POST /api/tasks` | create task |
-| `PATCH /api/tasks/:id` | edit / archive |
-| `POST /api/tasks/:id/complete` | record completion (optional note) |
-| `GET /api/tasks/:id/completions` | history, newest first |
-| `GET /api/ws` | WebSocket upgrade → forwarded to `WebsocketDO` |
-| `POST /api/test/reset` | wipe + reseed DB. **Registered in the composition root only when `ENVIRONMENT !== "production"`** — the route does not exist in prod. |
+| Route                            | Purpose                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                | auth/liveness check (used by frontend AuthGate)                                                                                       |
+| `GET /api/me`                    | current user email                                                                                                                    |
+| `GET /api/tasks`                 | all active tasks, each with `lastCompletion` and computed due state                                                                   |
+| `POST /api/tasks`                | create task                                                                                                                           |
+| `PATCH /api/tasks/:id`           | edit / archive                                                                                                                        |
+| `POST /api/tasks/:id/complete`   | record completion (optional note)                                                                                                     |
+| `GET /api/tasks/:id/completions` | history, newest first                                                                                                                 |
+| `GET /api/ws`                    | WebSocket upgrade → forwarded to `WebsocketDO`                                                                                        |
+| `POST /api/test/reset`           | wipe + reseed DB. **Registered in the composition root only when `ENVIRONMENT !== "production"`** — the route does not exist in prod. |
 
 Mutating handlers broadcast a WS event (fire-and-forget) after the DB write succeeds.
 
@@ -154,11 +156,11 @@ iglympics pattern, renamed and co-located:
 
 The middleware switches on `ENVIRONMENT` (a wrangler var: `"local" | "e2e" | "production"`; **unknown values are treated as `production`** — fail closed):
 
-| ENVIRONMENT | Identity source |
-|---|---|
+| ENVIRONMENT  | Identity source                                                                                                                                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `production` | `Cf-Access-Authenticated-User-Email` header (set by Cloudflare Access; Access enforces login before the worker is reached, so the header can't be spoofed). Additionally re-checked against `ALLOWED_EMAILS` var — defense in depth. |
-| `e2e` | `X-Test-User-Email` header, accepted **only** when `X-Test-Auth` equals the `TEST_AUTH_TOKEN` secret (timing-safe compare). Missing/wrong → 401. |
-| `local` | `DEV_USER_EMAIL` from `.dev.vars`. |
+| `e2e`        | `X-Test-User-Email` header, accepted **only** when `X-Test-Auth` equals the `TEST_AUTH_TOKEN` secret (timing-safe compare). Missing/wrong → 401.                                                                                     |
+| `local`      | `DEV_USER_EMAIL` from `.dev.vars`.                                                                                                                                                                                                   |
 
 - Cloudflare Access app (Terraform): Google IdP, policy allowing exactly `just@wallage.nl` and `suusraedts2018@gmail.com`, hostname = workers.dev URL for now (custom domain after the DNS move).
 - Ephemeral E2E workers are **not** behind Access; they rely on the `e2e` path above and a per-run random `TEST_AUTH_TOKEN`.
@@ -177,11 +179,11 @@ The middleware switches on `ENVIRONMENT` (a wrangler var: `"local" | "e2e" | "pr
 
 Three environments, mirrored in `wrangler.jsonc` envs:
 
-| Env | Worker | D1 | Access |
-|---|---|---|---|
-| local | `vite dev` (workerd via CF Vite plugin, real local D1/DO) | `stelplaats-local` (local) | — (`DEV_USER_EMAIL`) |
-| e2e | `stelplaats-e2e-<run_id>` (deployed by CI, deleted after) | `stelplaats-e2e-<run_id>` (created/deleted by CI) | — (test header path) |
-| production | `stelplaats` | `stelplaats-prod` | Access app (Google, 2-email allowlist) |
+| Env        | Worker                                                    | D1                                                | Access                                 |
+| ---------- | --------------------------------------------------------- | ------------------------------------------------- | -------------------------------------- |
+| local      | `vite dev` (workerd via CF Vite plugin, real local D1/DO) | `stelplaats-local` (local)                        | — (`DEV_USER_EMAIL`)                   |
+| e2e        | `stelplaats-e2e-<run_id>` (deployed by CI, deleted after) | `stelplaats-e2e-<run_id>` (created/deleted by CI) | — (test header path)                   |
+| production | `stelplaats`                                              | `stelplaats-prod`                                 | Access app (Google, 2-email allowlist) |
 
 **Terraform (`iac/`)**, state in R2 bucket `stelplaats-tfstate`:
 
@@ -249,15 +251,15 @@ GHA secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_R2_ACC
 
 ### Commands (package.json)
 
-| Script | Does |
-|---|---|
-| `pnpm dev` | Vite dev server with workerd (real D1/DO bindings), migrations applied first |
-| `pnpm build` | `tsc -b && vite build` |
-| `pnpm check` | **the** gate: prettier check → eslint → tsc (app, worker, e2e) → knip → jscpd → terraform fmt/validate → `vitest run` |
-| `pnpm fix` | prettier write + eslint --fix |
-| `pnpm test:unit` | vitest (workerd pool for `worker/`, node for `shared/`) |
-| `pnpm test:e2e` | Playwright; **`webServer` auto-starts `pnpm dev` if nothing is listening** (`reuseExistingServer: true`); CI sets `BASE_URL` to the ephemeral URL which disables the webServer |
-| `pnpm migrate:local` / `pnpm migrate:gen` | apply local migrations / `drizzle-kit generate` |
+| Script                                    | Does                                                                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`                                | Vite dev server with workerd (real D1/DO bindings), migrations applied first                                                                                                   |
+| `pnpm build`                              | `tsc -b && vite build`                                                                                                                                                         |
+| `pnpm check`                              | **the** gate: prettier check → eslint → tsc (app, worker, e2e) → knip → jscpd → terraform fmt/validate → `vitest run`                                                          |
+| `pnpm fix`                                | prettier write + eslint --fix                                                                                                                                                  |
+| `pnpm test:unit`                          | vitest (workerd pool for `worker/`, node for `shared/`)                                                                                                                        |
+| `pnpm test:e2e`                           | Playwright; **`webServer` auto-starts `pnpm dev` if nothing is listening** (`reuseExistingServer: true`); CI sets `BASE_URL` to the ephemeral URL which disables the webServer |
+| `pnpm migrate:local` / `pnpm migrate:gen` | apply local migrations / `drizzle-kit generate`                                                                                                                                |
 
 ## 13. CLAUDE.md convention
 

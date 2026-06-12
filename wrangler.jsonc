@@ -5,23 +5,23 @@
   "compatibility_date": "2026-06-01",
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*"],
   },
   "observability": { "enabled": true },
   "vars": {
     "ENVIRONMENT": "local",
-    "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com"
+    "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "stelplaats-local",
       "database_id": "stelplaats-local",
-      "migrations_dir": "db/migrations"
-    }
+      "migrations_dir": "db/migrations",
+    },
   ],
   "durable_objects": {
-    "bindings": [{ "name": "WEBSOCKET_DO", "class_name": "WebsocketDO" }]
+    "bindings": [{ "name": "WEBSOCKET_DO", "class_name": "WebsocketDO" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WebsocketDO"] }],
   "env": {
@@ -30,37 +30,37 @@
     "e2e": {
       "vars": {
         "ENVIRONMENT": "e2e",
-        "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com"
+        "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "stelplaats-e2e",
           "database_id": "TEMPLATE_E2E_DB_ID",
-          "migrations_dir": "db/migrations"
-        }
+          "migrations_dir": "db/migrations",
+        },
       ],
       "durable_objects": {
-        "bindings": [{ "name": "WEBSOCKET_DO", "class_name": "WebsocketDO" }]
-      }
+        "bindings": [{ "name": "WEBSOCKET_DO", "class_name": "WebsocketDO" }],
+      },
     },
     // Production: D1 id placeholder substituted by CI from terraform output.
     "production": {
       "vars": {
         "ENVIRONMENT": "production",
-        "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com"
+        "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "stelplaats-prod",
           "database_id": "TEMPLATE_PROD_DB_ID",
-          "migrations_dir": "db/migrations"
-        }
+          "migrations_dir": "db/migrations",
+        },
       ],
       "durable_objects": {
-        "bindings": [{ "name": "WEBSOCKET_DO", "class_name": "WebsocketDO" }]
-      }
-    }
-  }
+        "bindings": [{ "name": "WEBSOCKET_DO", "class_name": "WebsocketDO" }],
+      },
+    },
+  },
 }

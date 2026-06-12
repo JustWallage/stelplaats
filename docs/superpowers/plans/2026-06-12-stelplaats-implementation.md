@@ -18,7 +18,7 @@
 
 **Files:** `package.json`, `pnpm-workspace.yaml` (none — single package), `.gitignore`, `.nvmrc` (22), `wrangler.jsonc`, `vite.config.ts`, `index.html`, `tsconfig.json` + `tsconfig.app.json` + `tsconfig.worker.json` + `tsconfig.e2e.json`, `src/main.tsx`, `src/App.tsx`, `src/index.css`, `worker/index.ts`, `worker/env.ts`, `shared/` (empty placeholder ok to omit until Task 3).
 
-- [x] Step 1: `git init`, write `.gitignore` (node_modules, dist, .wrangler, .dev.vars, .env*, .bootstrap.env, playwright-report, test-results, iac/.terraform*, *.tfstate*).
+- [x] Step 1: `git init`, write `.gitignore` (node*modules, dist, .wrangler, .dev.vars, .env*, .bootstrap.env, playwright-report, test-results, iac/.terraform*, *.tfstate\_).
 - [x] Step 2: `pnpm init`; install deps: `react react-dom hono zod drizzle-orm` ; dev: `typescript vite @vitejs/plugin-react @cloudflare/vite-plugin wrangler @cloudflare/workers-types tailwindcss @tailwindcss/vite drizzle-kit` (latest; record actual versions).
 - [x] Step 3: `wrangler.jsonc` per SPEC §10: name `stelplaats`, `main: worker/index.ts`, D1 binding `DB` (`stelplaats-local`, `migrations_dir: db/migrations`), DO binding `WEBSOCKET_DO`→`WebsocketDO` + `new_sqlite_classes` migration, vars `ENVIRONMENT=local`, `ALLOWED_EMAILS`, assets with `not_found_handling: single-page-application`, `run_worker_first: ["/api/*"]`; envs `e2e` and `production` overriding ENVIRONMENT/db name (ids templated in CI).
 - [x] Step 4: `vite.config.ts` with `react()`, `tailwindcss()`, `cloudflare()`. `index.html` → `src/main.tsx` rendering `<App/>` with Tailwind import in `src/index.css`.
@@ -33,7 +33,7 @@
 - [x] Step 1: Install dev deps: `eslint typescript-eslint @eslint/js prettier knip jscpd husky vitest @cloudflare/vitest-pool-workers eslint-plugin-react-hooks globals`.
 - [x] Step 2: `eslint.config.js`: typescript-eslint `strictTypeChecked` + `stylisticTypeChecked` with `projectService`; rules: `consistent-type-assertions: { assertionStyle: "never" }`; `no-restricted-syntax` carve-out NOT needed if assertionStyle never blocks as const → instead use `assertionStyle: "never"` + allow `as const` via rule option not available → use selector approach: disable the rule and add `no-restricted-syntax` with `TSAsExpression:not([typeAnnotation.typeName.name="const"])` + `TSTypeAssertion`. Also `no-non-null-assertion: error`, `no-console` for `src/**`, react-hooks rules for `src/**`, `linterOptions.reportUnusedDisableDirectives: "error"`.
 - [x] Step 3: Prettier defaults; `pnpm fix` = prettier write + eslint --fix.
-- [x] Step 4: `knip.json` (entry: worker/index.ts, src/main.tsx, e2e/**, config files). `.jscpd.json`: paths src worker shared, min-tokens ~70, fail on duplication.
+- [x] Step 4: `knip.json` (entry: worker/index.ts, src/main.tsx, e2e/\*\*, config files). `.jscpd.json`: paths src worker shared, min-tokens ~70, fail on duplication.
 - [x] Step 5: Scripts per SPEC §12 table incl. `check` chain (prettier → eslint → tsc ×3 → knip → jscpd → tf fmt/validate [skip until iac exists; add in Task 10] → vitest run).
 - [x] Step 6: Husky init; pre-commit = `pnpm check`. Run `pnpm check` → green. Commit `chore: strict lint/format/dead-code/dup gates`.
 

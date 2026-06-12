@@ -3,7 +3,6 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
       "@shared/*": ["./shared/*"]
     }
@@ -14,6 +13,7 @@
     "vite.config.ts",
     "drizzle.config.ts",
     "playwright.config.ts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "vitest.workers.config.ts"
   ]
 }
