@@ -12,6 +12,8 @@
   // tailwindcss/tw-animate-css/shadcn/geist are imported from src/index.css
   // (knip does not parse CSS imports); "cloudflare" is the cloudflare:workers
   // protocol, not an npm package.
+  // terraform is a system binary, not an npm package.
+  "ignoreBinaries": ["terraform"],
   "ignoreDependencies": [
     "tailwindcss",
     "cloudflare",
