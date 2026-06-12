@@ -24,6 +24,39 @@ describe("app composition", () => {
     expect(res.status).toBe(401);
   });
 
+  it("hides /api/test/reset in production even for authenticated users", async () => {
+    const res = await app.request(
+      "/api/test/reset",
+      {
+        method: "POST",
+        headers: { "Cf-Access-Authenticated-User-Email": "just@wallage.nl" },
+      },
+      { ...env, ENVIRONMENT: "production" },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("hides /api/test/reset for unknown environments (fail closed)", async () => {
+    const res = await app.request(
+      "/api/test/reset",
+      {
+        method: "POST",
+        headers: { "Cf-Access-Authenticated-User-Email": "just@wallage.nl" },
+      },
+      { ...env, ENVIRONMENT: "weird" },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("serves /api/test/reset in local mode", async () => {
+    const res = await app.request(
+      "/api/test/reset",
+      { method: "POST" },
+      { ...env, ENVIRONMENT: "local" },
+    );
+    expect(res.status).toBe(200);
+  });
+
   it("serves /api/health with identity in local mode", async () => {
     const res = await app.request(
       "/api/health",
