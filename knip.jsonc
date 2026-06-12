@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": ["src/main.tsx", "worker/index.ts"],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "worker/**/*.ts",
+    "shared/**/*.ts",
+    "db/**/*.ts",
+  ],
+  // TEMPORARY during initial build-out: exports/types checks disabled and
+  // not-yet-consumed files ignored until all consumers exist (restored to full
+  // strictness in the CLAUDE.md task). drizzle-orm ignore drops with the DB task.
+  "ignore": ["src/components/ui/**", "shared/ws-events.ts"],
+  "ignoreDependencies": ["tailwindcss", "cloudflare", "drizzle-orm"],
+  "exclude": ["exports", "types"],
+}
