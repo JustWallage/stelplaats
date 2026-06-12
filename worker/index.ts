@@ -10,7 +10,13 @@ const app = new Hono<AppEnv>();
 // app-level auth. In production, Cloudflare Access still gates it at the edge.
 // Hono runs matched handlers in registration order, so this route never passes
 // through authMiddleware. Do not move it below the `app.use` line.
-app.get("/api/ws", (c) => c.json({ error: "Expected WebSocket upgrade" }, 426));
+app.get("/api/ws", (c) => {
+  if (c.req.header("Upgrade") !== "websocket") {
+    return c.json({ error: "Expected WebSocket upgrade" }, 426);
+  }
+  const stub = c.env.WEBSOCKET_DO.get(c.env.WEBSOCKET_DO.idFromName("global"));
+  return stub.fetch(c.req.raw);
+});
 
 app.use("/api/*", authMiddleware);
 
