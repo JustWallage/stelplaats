@@ -9,8 +9,8 @@
   ],
   // TEMPORARY during initial build-out: exports/types checks disabled and
   // not-yet-consumed files ignored until all consumers exist (restored to full
-  // strictness in the CLAUDE.md task). drizzle-orm ignore drops with the DB task.
+  // strictness in the CLAUDE.md task).
   "ignore": ["src/components/ui/**", "shared/ws-events.ts"],
-  "ignoreDependencies": ["tailwindcss", "cloudflare", "drizzle-orm"],
+  "ignoreDependencies": ["tailwindcss", "cloudflare"],
   "exclude": ["exports", "types"],
 }
