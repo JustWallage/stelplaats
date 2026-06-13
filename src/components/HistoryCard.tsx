@@ -21,13 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, delInit, jsonInit } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
-
-const toLocalInput = (iso: string): string => {
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
+import { formatDateTime, toDateTimeLocal } from "@/lib/format";
 
 export function HistoryCard({
   taskId,
@@ -40,7 +34,7 @@ export function HistoryCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [doneBy, setDoneBy] = useState(completion.doneBy);
-  const [doneAt, setDoneAt] = useState(toLocalInput(completion.doneAt));
+  const [doneAt, setDoneAt] = useState(toDateTimeLocal(completion.doneAt));
   const [note, setNote] = useState(completion.note ?? "");
   const [busy, setBusy] = useState(false);
 

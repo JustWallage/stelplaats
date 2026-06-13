@@ -46,6 +46,20 @@ test("logs a completion under an overridden user", async ({
   await expect(page.getByText("Suus").first()).toBeVisible();
 });
 
+test("logs a completion at a chosen date", async ({ page, request }) => {
+  const id = await createTask(request, { title: "Bleed the radiators" });
+
+  await page.goto("/cleaning");
+  await page
+    .getByRole("button", { name: "Complete Bleed the radiators" })
+    .click();
+  await page.getByLabel("When").fill("2026-01-15T12:00");
+  await page.getByRole("button", { name: "Log it" }).click();
+
+  await page.goto(`/tasks/${String(id)}`);
+  await expect(page.getByText(/15 Jan/)).toBeVisible();
+});
+
 test("edits a history record's note", async ({ page, request }) => {
   const id = await createTask(request, { title: "Clean the oven" });
   await complete(request, id);

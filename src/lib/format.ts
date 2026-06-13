@@ -6,6 +6,13 @@ export const formatDateTime = (iso: string): string =>
     minute: "2-digit",
   });
 
+/** ISO → value for an <input type="datetime-local"> (local time, no seconds). */
+export const toDateTimeLocal = (iso: string): string => {
+  const date = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 const MS_PER_DAY = 86_400_000;
 
 export const formatRelative = (iso: string, now: Date = new Date()): string => {
