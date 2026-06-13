@@ -18,6 +18,7 @@
     "dev:e2e": "pnpm migrate:local:e2e && CLOUDFLARE_ENV=e2e vite --port 5174",
     "build": "vite build",
     "preview": "vite preview",
+    "wrangler:login": "wrangler login",
     "cf-typegen": "wrangler types",
     "check": "pnpm check:format && pnpm check:lint && pnpm check:ts && pnpm check:knip && pnpm check:dup && pnpm check:tf && pnpm test:unit",
     "check:format": "prettier --check .",
