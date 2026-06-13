@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDueState } from "./due";
+import { computeDueState, dueColorHue } from "./due";
 
 const noon = (isoDate: string) => new Date(`${isoDate}T12:00:00Z`);
 
@@ -53,5 +53,33 @@ describe("computeDueState", () => {
       status: "due",
       dueAt: "2026-06-12",
     });
+  });
+});
+
+describe("dueColorHue", () => {
+  const now = noon("2026-06-12");
+
+  it("is null for ad-hoc tasks", () => {
+    expect(dueColorHue(null, "2026-06-20", now)).toBeNull();
+    expect(dueColorHue(7, null, now)).toBeNull();
+  });
+
+  it("is green when a full interval remains", () => {
+    expect(dueColorHue(7, "2026-06-19", now)).toBe(120);
+  });
+
+  it("is red at and past the due date", () => {
+    expect(dueColorHue(7, "2026-06-12", now)).toBe(0);
+    expect(dueColorHue(7, "2026-06-09", now)).toBe(0);
+  });
+
+  it("is orange two days before due", () => {
+    expect(dueColorHue(7, "2026-06-14", now)).toBe(30);
+  });
+
+  it("interpolates between green and orange in the middle", () => {
+    const hue = dueColorHue(7, "2026-06-16", now);
+    expect(hue).toBeGreaterThan(30);
+    expect(hue).toBeLessThan(120);
   });
 });

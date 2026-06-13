@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { meSchema } from "../shared/api";
 import type { AppEnv } from "./env";
+import { commentsRoutes } from "./routes/comments";
 import { tasksRoutes } from "./routes/tasks";
 import { testResetRoute } from "./routes/test-reset";
 import { authMiddleware } from "./middleware/auth";
@@ -27,6 +28,7 @@ app.get("/api/me", (c) =>
   c.json(meSchema.parse({ email: c.get("userEmail") })),
 );
 app.route("/api/tasks", tasksRoutes);
+app.route("/api/tasks/:id/comments", commentsRoutes);
 
 // Test-only surface. Fail closed: anything that is not exactly e2e/local —
 // including unknown ENVIRONMENT values — gets a 404, as if the route does not

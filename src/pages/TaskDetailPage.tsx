@@ -1,15 +1,17 @@
 import { completionListSchema, taskWithStatusSchema } from "@shared/api";
+import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { DueStatusBadge, completeTask } from "@/components/TaskCard";
+import { CommentSection } from "@/components/CommentSection";
+import { CompletionModal } from "@/components/CompletionModal";
+import { HistoryCard } from "@/components/HistoryCard";
+import { DueStatusBadge } from "@/components/TaskCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { useTaskEvents } from "@/context/WebSocketContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { useTasks } from "@/hooks/useTasks";
 import { apiFetch, jsonInit } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
 
 export function TaskDetailPage() {
   const params = useParams();
@@ -20,7 +22,7 @@ export function TaskDetailPage() {
     `/api/tasks/${id}/completions`,
     completionListSchema,
   );
-  const [note, setNote] = useState("");
+  const [logging, setLogging] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const refresh = () => {
@@ -40,94 +42,97 @@ export function TaskDetailPage() {
     );
   }
 
-  const handleComplete = () => {
-    setBusy(true);
-    completeTask(task.id, note.trim() === "" ? null : note.trim())
-      .then(() => {
-        setNote("");
-        refresh();
-      })
-      .catch(refresh)
-      .finally(() => {
-        setBusy(false);
-      });
-  };
-
   const handleArchive = () => {
     setBusy(true);
     apiFetch(`/api/tasks/${id}`, taskWithStatusSchema, {
       ...jsonInit("PATCH", { archived: true }),
     })
-      .then(() => navigate(-1))
+      .then(() => navigate(`/${task.kind}`))
       .catch(refresh)
       .finally(() => {
         setBusy(false);
       });
   };
 
+  const completions = history.data?.completions ?? [];
+
   return (
     <div className="space-y-6">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-2"
+        onClick={() => {
+          void navigate(`/${task.kind}`);
+        }}
+      >
+        <ChevronLeft className="size-4" /> Back
+      </Button>
+
       <div>
         <h1 className="text-2xl font-bold">{task.title}</h1>
         <p className="text-muted-foreground">
-          {task.location}
-          {task.intervalDays !== null
-            ? ` · every ${String(task.intervalDays)} days`
-            : " · ad-hoc"}
+          {[
+            task.location,
+            task.intervalDays !== null
+              ? `every ${String(task.intervalDays)} days`
+              : "ad-hoc",
+          ]
+            .filter((part) => part !== null && part !== "")
+            .join(" · ")}
         </p>
+        {task.description !== null && (
+          <p className="mt-2 whitespace-pre-wrap text-sm">{task.description}</p>
+        )}
         <div className="mt-2">
           <DueStatusBadge task={task} />
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Mark as done</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Textarea
-            placeholder="Optional note"
-            value={note}
-            onChange={(e) => {
-              setNote(e.target.value);
-            }}
-          />
-          <Button className="w-full" disabled={busy} onClick={handleComplete}>
-            Done
-          </Button>
-        </CardContent>
-      </Card>
+      <Button
+        className="w-full"
+        onClick={() => {
+          setLogging(true);
+        }}
+      >
+        I did this
+      </Button>
+      <CompletionModal
+        taskId={task.id}
+        title={task.title}
+        open={logging}
+        onOpenChange={setLogging}
+        onDone={refresh}
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>History</CardTitle>
         </CardHeader>
-        <CardContent>
-          {history.data === undefined ||
-          history.data.completions.length === 0 ? (
+        <CardContent className="space-y-2">
+          {completions.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Never completed yet.
             </p>
           ) : (
-            <ul className="space-y-2">
-              {history.data.completions.map((completion) => (
-                <li
-                  key={completion.id}
-                  className="border-b pb-2 text-sm last:border-b-0"
-                >
-                  <span className="font-medium">
-                    {formatDateTime(completion.doneAt)}
-                  </span>{" "}
-                  <span className="text-muted-foreground">
-                    by {completion.doneBy}
-                  </span>
-                  {completion.note !== null && (
-                    <p className="text-muted-foreground">“{completion.note}”</p>
-                  )}
-                </li>
-              ))}
-            </ul>
+            completions.map((completion) => (
+              <HistoryCard
+                key={completion.id}
+                taskId={task.id}
+                completion={completion}
+                onChanged={refresh}
+              />
+            ))
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Comments</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CommentSection taskId={id} />
         </CardContent>
       </Card>
 

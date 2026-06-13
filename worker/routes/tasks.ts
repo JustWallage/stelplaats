@@ -1,4 +1,4 @@
-import { desc, eq, isNull, inArray, max } from "drizzle-orm";
+import { desc, eq, isNotNull, isNull, inArray, max } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import type { ZodType } from "zod";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../../db/schema";
 import {
   completeTaskSchema,
+  completionPatchSchema,
   taskCreateSchema,
   taskPatchSchema,
 } from "../../shared/api";
@@ -47,10 +48,11 @@ async function findLastCompletion(
 
 tasksRoutes.get("/", async (c) => {
   const db = getDb(c.env);
+  const archived = c.req.query("archived") === "true";
   const activeTasks = await db
     .select()
     .from(tasks)
-    .where(isNull(tasks.archivedAt));
+    .where(archived ? isNotNull(tasks.archivedAt) : isNull(tasks.archivedAt));
   const latestIds = db
     .select({ id: max(completions.id) })
     .from(completions)
@@ -76,15 +78,37 @@ tasksRoutes.post("/", async (c) => {
     return c.json({ error: "Invalid request body" }, 400);
   }
   const db = getDb(c.env);
+  const { title, kind, location, description, intervalDays, lastDoneAt } =
+    parsed.data;
   const inserted = await db
     .insert(tasks)
-    .values({ ...parsed.data, createdAt: new Date() })
+    .values({
+      title,
+      kind,
+      location: location ?? "",
+      description,
+      intervalDays,
+      createdAt: new Date(),
+    })
     .returning();
   const task = inserted[0];
   if (task === undefined) {
     return c.json({ error: "Insert failed" }, 500);
   }
-  const payload = toTaskWithStatus(task, null, new Date());
+  let seed: CompletionRow | null = null;
+  if (lastDoneAt !== null) {
+    const seedRows = await db
+      .insert(completions)
+      .values({
+        taskId: task.id,
+        doneBy: c.get("userEmail"),
+        doneAt: new Date(lastDoneAt),
+        note: null,
+      })
+      .returning();
+    seed = seedRows[0] ?? null;
+  }
+  const payload = toTaskWithStatus(task, seed, new Date());
   await broadcast(c.env, { type: "task_created", payload });
   return c.json(payload, 201);
 });
@@ -114,13 +138,16 @@ tasksRoutes.patch("/:id", async (c) => {
   }
   const { data, db, task } = result;
   const id = task.id;
-  const { archived, title, location, intervalDays } = data;
+  const { archived, title, location, description, intervalDays } = data;
   const updates: Partial<typeof tasks.$inferInsert> = {};
   if (title !== undefined) {
     updates.title = title;
   }
   if (location !== undefined) {
-    updates.location = location;
+    updates.location = location ?? "";
+  }
+  if (description !== undefined) {
+    updates.description = description;
   }
   if (intervalDays !== undefined) {
     updates.intervalDays = intervalDays;
@@ -154,8 +181,8 @@ tasksRoutes.post("/:id/complete", async (c) => {
     .insert(completions)
     .values({
       taskId: existing.id,
-      doneBy: c.get("userEmail"),
-      doneAt: new Date(),
+      doneBy: data.doneBy ?? c.get("userEmail"),
+      doneAt: data.doneAt === undefined ? new Date() : new Date(data.doneAt),
       note: data.note,
     })
     .returning();
@@ -184,4 +211,77 @@ tasksRoutes.get("/:id/completions", async (c) => {
     .where(eq(completions.taskId, id))
     .orderBy(desc(completions.id));
   return c.json({ completions: rows.map(toCompletion) });
+});
+
+// Recompute the task payload from its current latest completion and broadcast
+// task_updated — shared by the completion edit/delete routes, which both shift
+// due state.
+async function respondWithUpdatedTask(
+  c: Context<AppEnv>,
+  db: Db,
+  task: TaskRow,
+): Promise<Response> {
+  const payload = toTaskWithStatus(
+    task,
+    await findLastCompletion(db, task.id),
+    new Date(),
+  );
+  await broadcast(c.env, { type: "task_updated", payload });
+  return c.json(payload);
+}
+
+async function loadCompletionForTask(
+  db: Db,
+  taskId: number,
+  completionId: number,
+): Promise<CompletionRow | null> {
+  const rows = await db
+    .select()
+    .from(completions)
+    .where(eq(completions.id, completionId))
+    .limit(1);
+  const row = rows[0] ?? null;
+  return row !== null && row.taskId === taskId ? row : null;
+}
+
+tasksRoutes.patch("/:id/completions/:cid", async (c) => {
+  const result = await parseBodyForTask(c, completionPatchSchema);
+  if ("error" in result) {
+    return result.error;
+  }
+  const { data, db, task } = result;
+  const cid = Number(c.req.param("cid"));
+  const completion = await loadCompletionForTask(db, task.id, cid);
+  if (completion === null) {
+    return c.json({ error: "Completion not found" }, 404);
+  }
+  const updates: Partial<typeof completions.$inferInsert> = {};
+  if (data.doneBy !== undefined) {
+    updates.doneBy = data.doneBy;
+  }
+  if (data.doneAt !== undefined) {
+    updates.doneAt = new Date(data.doneAt);
+  }
+  if (data.note !== undefined) {
+    updates.note = data.note;
+  }
+  if (Object.keys(updates).length > 0) {
+    await db.update(completions).set(updates).where(eq(completions.id, cid));
+  }
+  return respondWithUpdatedTask(c, db, task);
+});
+
+tasksRoutes.delete("/:id/completions/:cid", async (c) => {
+  const db = getDb(c.env);
+  const task = await findTask(db, Number(c.req.param("id")));
+  if (task === null) {
+    return c.json({ error: "Task not found" }, 404);
+  }
+  const cid = Number(c.req.param("cid"));
+  const completion = await loadCompletionForTask(db, task.id, cid);
+  if (completion === null) {
+    return c.json({ error: "Completion not found" }, 404);
+  }
+  await db.delete(completions).where(eq(completions.id, cid));
+  return respondWithUpdatedTask(c, db, task);
 });

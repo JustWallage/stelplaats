@@ -2,6 +2,7 @@ import type { TaskWithStatus } from "@shared/api";
 import { TaskCard } from "@/components/TaskCard";
 import { useTaskEvents } from "@/context/WebSocketContext";
 import { useTasks } from "@/hooks/useTasks";
+import { selectAdhoc, selectUpcoming } from "@shared/home";
 
 function Section({
   title,
@@ -38,20 +39,20 @@ export function Dashboard() {
     return <p className="text-destructive">Could not load tasks.</p>;
   }
 
-  const overdue = data.tasks.filter((task) => task.due.status === "overdue");
-  const due = data.tasks.filter((task) => task.due.status === "due");
+  const upcoming = selectUpcoming(data.tasks);
+  const adhoc = selectAdhoc(data.tasks);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Today</h1>
-      {overdue.length === 0 && due.length === 0 ? (
+      {upcoming.length === 0 && adhoc.length === 0 ? (
         <p className="text-muted-foreground">
           All caught up — nothing is due. 🎉
         </p>
       ) : (
         <>
-          <Section title="Overdue" tasks={overdue} onChanged={mutate} />
-          <Section title="Due" tasks={due} onChanged={mutate} />
+          <Section title="Upcoming" tasks={upcoming} onChanged={mutate} />
+          <Section title="Ad-hoc" tasks={adhoc} onChanged={mutate} />
         </>
       )}
     </div>

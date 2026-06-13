@@ -11,7 +11,9 @@ test("completing a task live-updates another client via WebSocket", async ({
       title: "Dust shelves",
       kind: "cleaning",
       location: "Hallway",
+      description: null,
       intervalDays: 14,
+      lastDoneAt: null,
     },
   });
   expect(create.ok()).toBeTruthy();
@@ -24,12 +26,14 @@ test("completing a task live-updates another client via WebSocket", async ({
   await observer.goto("/");
   await expect(observer.getByText("Dust shelves")).toBeVisible();
 
-  // First client completes the task from the cleaning list.
+  // First client completes the task from the cleaning list (via the modal).
   await page.goto("/cleaning");
   await page.getByRole("button", { name: "Complete Dust shelves" }).click();
+  await page.getByRole("button", { name: "Log it" }).click();
 
-  // The observer page must update WITHOUT any reload or navigation.
-  await expect(observer.getByText(/All caught up/)).toBeVisible({
+  // The observer page must update WITHOUT any reload or navigation: the task
+  // stays on the dashboard but flips from Due to OK once it is completed.
+  await expect(observer.getByText(/OK · next/)).toBeVisible({
     timeout: 10_000,
   });
 

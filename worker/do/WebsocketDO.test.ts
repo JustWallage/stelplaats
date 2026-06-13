@@ -10,6 +10,7 @@ const event: WsEvent = {
     title: "Water monstera",
     kind: "plants",
     location: "Living room",
+    description: null,
     intervalDays: 3,
     createdAt: "2026-06-12T10:00:00.000Z",
     archived: false,

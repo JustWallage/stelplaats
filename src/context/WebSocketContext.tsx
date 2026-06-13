@@ -100,6 +100,8 @@ export function useTaskEvents(onEvent: () => void): void {
       "task_created",
       "task_updated",
       "task_completed",
+      "comment_created",
+      "comment_deleted",
     ];
     const unsubscribers = types.map((type) => subscribe(type, onEvent));
     return () => {

@@ -21,7 +21,9 @@ const defaultTask = {
   title: "Vacuum living room",
   kind: "cleaning",
   location: "Living room",
+  description: null,
   intervalDays: 7,
+  lastDoneAt: null,
 };
 
 async function createTask(
@@ -56,6 +58,23 @@ describe("POST /api/tasks", () => {
   it("creates an ad-hoc task without interval", async () => {
     const task = await createTask({ intervalDays: null });
     expect(task.due).toEqual({ status: "adhoc", dueAt: null });
+  });
+
+  it("creates a task with a null location and a description", async () => {
+    const task = await createTask({
+      location: null,
+      description: "use vinegar",
+    });
+    expect(task.location).toBeNull();
+    expect(task.description).toBe("use vinegar");
+  });
+
+  it("seeds a first completion when lastDoneAt is given", async () => {
+    const lastDoneAt = new Date("2026-06-10T09:00:00Z").toISOString();
+    const task = await createTask({ intervalDays: 7, lastDoneAt });
+    expect(task.lastCompletion).not.toBeNull();
+    expect(task.lastCompletion?.doneBy).toBe("just@wallage.nl");
+    expect(task.due.status).toBe("ok");
   });
 
   it("rejects an invalid body", async () => {
@@ -186,6 +205,114 @@ describe("GET /api/tasks/:id/completions", () => {
       "second",
       "first",
     ]);
+  });
+});
+
+describe("POST /api/tasks/:id/complete overrides", () => {
+  it("records a completion under an overridden user", async () => {
+    const created = await createTask();
+    const res = await app.request(
+      `/api/tasks/${created.id}/complete`,
+      jsonInit("POST", { note: null, doneBy: "suusraedts2018@gmail.com" }),
+      localEnv,
+    );
+    expect(res.status).toBe(200);
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.lastCompletion?.doneBy).toBe("suusraedts2018@gmail.com");
+  });
+
+  it("rejects an unknown override user", async () => {
+    const created = await createTask();
+    const res = await app.request(
+      `/api/tasks/${created.id}/complete`,
+      jsonInit("POST", { note: null, doneBy: "stranger@example.com" }),
+      localEnv,
+    );
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("PATCH /api/tasks/:id/completions/:cid", () => {
+  it("edits who, when and note, recomputing due state", async () => {
+    const created = await createTask({ intervalDays: 7 });
+    const completeRes = await app.request(
+      `/api/tasks/${created.id}/complete`,
+      jsonInit("POST", { note: "first" }),
+      localEnv,
+    );
+    const completed = taskWithStatusSchema.parse(await completeRes.json());
+    const cid = completed.lastCompletion?.id;
+    const res = await app.request(
+      `/api/tasks/${created.id}/completions/${cid}`,
+      jsonInit("PATCH", {
+        doneBy: "suusraedts2018@gmail.com",
+        note: "corrected",
+        doneAt: new Date("2026-01-01T00:00:00Z").toISOString(),
+      }),
+      localEnv,
+    );
+    expect(res.status).toBe(200);
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.lastCompletion?.doneBy).toBe("suusraedts2018@gmail.com");
+    expect(task.lastCompletion?.note).toBe("corrected");
+    expect(task.due.status).toBe("overdue");
+  });
+
+  it("404s on a completion that belongs to another task", async () => {
+    const a = await createTask();
+    const b = await createTask();
+    const completeRes = await app.request(
+      `/api/tasks/${a.id}/complete`,
+      jsonInit("POST", { note: null }),
+      localEnv,
+    );
+    const cid = taskWithStatusSchema.parse(await completeRes.json())
+      .lastCompletion?.id;
+    const res = await app.request(
+      `/api/tasks/${b.id}/completions/${cid}`,
+      jsonInit("PATCH", { note: "x" }),
+      localEnv,
+    );
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("DELETE /api/tasks/:id/completions/:cid", () => {
+  it("deletes a completion and recomputes due state", async () => {
+    const created = await createTask({ intervalDays: 7 });
+    const completeRes = await app.request(
+      `/api/tasks/${created.id}/complete`,
+      jsonInit("POST", { note: null }),
+      localEnv,
+    );
+    const cid = taskWithStatusSchema.parse(await completeRes.json())
+      .lastCompletion?.id;
+    const res = await app.request(
+      `/api/tasks/${created.id}/completions/${cid}`,
+      { method: "DELETE" },
+      localEnv,
+    );
+    expect(res.status).toBe(200);
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.lastCompletion).toBeNull();
+    expect(task.due.status).toBe("due");
+  });
+});
+
+describe("GET /api/tasks?archived=true", () => {
+  it("lists only archived tasks", async () => {
+    const active = await createTask();
+    const toArchive = await createTask();
+    await app.request(
+      `/api/tasks/${toArchive.id}`,
+      jsonInit("PATCH", { archived: true }),
+      localEnv,
+    );
+    const res = await app.request("/api/tasks?archived=true", {}, localEnv);
+    expect(res.status).toBe(200);
+    const ids = taskListSchema.parse(await res.json()).tasks.map((t) => t.id);
+    expect(ids).toContain(toArchive.id);
+    expect(ids).not.toContain(active.id);
   });
 });
 
