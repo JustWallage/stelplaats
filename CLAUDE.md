@@ -33,6 +33,8 @@ docs/      BOOTSTRAP.md (manual setup), DOMAIN-MIGRATION.md (deferred DNS move)
   inference (`db/schema.ts`). Never redefine them locally.
 - knip fails on unused exports/files/deps: don't export "for later".
 - After changing `wrangler.jsonc`, run `pnpm cf-typegen` (also runs in check).
+- Before implementing a new feature, create an isolated worktree with
+  `pnpm worktree <branch-name>` (no `open` flag) and work there.
 - Every change that includes logic => add relevant e2e tests
 - Every change: `pnpm check` green + relevant e2e coverage.
 - No comments unless absolutely necessary to understand non-obvious code, and

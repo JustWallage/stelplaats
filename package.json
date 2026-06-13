@@ -32,6 +32,8 @@
     "test:e2e": "playwright test",
     "playwright:install": "playwright install --with-deps chromium",
     "prepare": "husky",
+    "worktree": "bash scripts/worktree.sh",
+    "merge": "bash scripts/worktree-merge.sh",
     "migrate:gen": "drizzle-kit generate",
     "migrate:local": "wrangler d1 migrations apply DB --local",
     "migrate:local:e2e": "wrangler d1 migrations apply DB --local --env e2e",
