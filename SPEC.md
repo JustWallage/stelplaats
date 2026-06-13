@@ -185,7 +185,7 @@ The middleware switches on `ENVIRONMENT` (a wrangler var: `"local" | "e2e" | "pr
 ## 9. Frontend
 
 - **Pages**: Dashboard (Upcoming — every overdue task plus enough soonest-due to fill three — and Ad-hoc — the three done longest ago), Cleaning / Plants / House (kind-filtered lists with an archived section), Task detail (description, editable/deletable history cards, comment thread, "I did this" modal, back button), Home Assistant (placeholder), accessed via bottom tab bar on mobile / sidebar on desktop.
-- **Completion** is confirmed through a modal (optional note, optional Just/Suus override defaulting to the current user); task cards carry a green→orange→red left-border gradient for time-until-due.
+- **Completion** is confirmed through a modal (optional note, optional Just/Suus override defaulting to the current user); task cards headline the time-until-due countdown ("N days left" / "Due today" / "N days overdue" / "Ad-hoc") and carry a green→orange→red left-border gradient for the same.
 - **Layout**: mobile-first as the design target, but **with Tailwind breakpoints** (unlike iglympics) so desktop gets a real layout (centered content column → multi-column dashboard at `lg:`).
 - **Gating**: `AuthGate` (calls `/api/health`; on 401/redirect shows login) wrapping the router, iglympics-style contexts: `WebSocketContext`.
 - **Data**: `useCachedFetch<T>(url)` (module-level cache, background revalidate, `mutate()`), WS subscriptions call `mutate()`. Components never `fetch` directly.

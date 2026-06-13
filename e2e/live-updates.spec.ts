@@ -32,8 +32,8 @@ test("completing a task live-updates another client via WebSocket", async ({
   await page.getByRole("button", { name: "Log it" }).click();
 
   // The observer page must update WITHOUT any reload or navigation: the task
-  // stays on the dashboard but flips from Due to OK once it is completed.
-  await expect(observer.getByText(/OK · next/)).toBeVisible({
+  // stays on the dashboard but flips from due to counting down once completed.
+  await expect(observer.getByText("14 days left")).toBeVisible({
     timeout: 10_000,
   });
 
