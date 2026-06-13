@@ -20,6 +20,7 @@ export function App() {
                 element={<TaskListPage kind="cleaning" />}
               />
               <Route path="plants" element={<TaskListPage kind="plants" />} />
+              <Route path="house" element={<TaskListPage kind="house" />} />
               <Route path="tasks/:id" element={<TaskDetailPage />} />
               <Route path="hass" element={<HassPage />} />
             </Route>

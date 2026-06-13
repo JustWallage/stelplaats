@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { completionSchema, taskWithStatusSchema } from "./api";
+import { commentSchema, completionSchema, taskWithStatusSchema } from "./api";
 
 // Every realtime update in the app is one of these events, broadcast through
 // the WebsocketDO. Add new event types here first; both ends infer from this.
@@ -12,6 +12,11 @@ export const wsEventSchema = z.discriminatedUnion("type", [
       task: taskWithStatusSchema,
       completion: completionSchema,
     }),
+  }),
+  z.object({ type: z.literal("comment_created"), payload: commentSchema }),
+  z.object({
+    type: z.literal("comment_deleted"),
+    payload: z.object({ id: z.int(), taskId: z.int() }),
   }),
 ]);
 

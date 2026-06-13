@@ -33,3 +33,5 @@ export const jsonInit = (
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
 });
+
+export const delInit: RequestInit = { method: "DELETE" };

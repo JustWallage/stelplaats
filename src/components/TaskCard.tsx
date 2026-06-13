@@ -1,16 +1,14 @@
-import {
-  taskWithStatusSchema,
-  type DueStatus,
-  type TaskWithStatus,
-} from "@shared/api";
+import { type DueStatus, type TaskWithStatus } from "@shared/api";
+import { displayName } from "@shared/users";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
+import { CompletionModal } from "@/components/CompletionModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiFetch, jsonInit } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
+import { dueColor } from "@/lib/dueColor";
+import { formatRelative } from "@/lib/format";
 
 const dueBadge: Record<
   DueStatus,
@@ -37,19 +35,6 @@ export function DueStatusBadge({ task }: { task: TaskWithStatus }) {
   );
 }
 
-export async function completeTask(
-  taskId: number,
-  note: string | null,
-): Promise<void> {
-  await apiFetch(
-    `/api/tasks/${String(taskId)}/complete`,
-    taskWithStatusSchema,
-    {
-      ...jsonInit("POST", { note }),
-    },
-  );
-}
-
 export function TaskCard({
   task,
   onChanged,
@@ -57,28 +42,28 @@ export function TaskCard({
   task: TaskWithStatus;
   onChanged: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const color = dueColor(task);
 
-  const handleComplete = () => {
-    setBusy(true);
-    completeTask(task.id, null)
-      .then(onChanged)
-      .catch(onChanged)
-      .finally(() => {
-        setBusy(false);
-      });
-  };
+  const subtitle = [
+    task.location,
+    task.lastCompletion === null
+      ? "never done"
+      : `${displayName(task.lastCompletion.doneBy)} · ${formatRelative(task.lastCompletion.doneAt)}`,
+  ]
+    .filter((part) => part !== null && part !== "")
+    .join(" · ");
 
   return (
-    <Card>
+    <Card
+      className={color !== null ? "border-l-4" : undefined}
+      style={color !== null ? { borderLeftColor: color } : undefined}
+    >
       <CardContent className="flex items-center justify-between gap-3 p-4">
         <Link to={`/tasks/${String(task.id)}`} className="min-w-0 flex-1">
           <div className="truncate font-medium">{task.title}</div>
           <div className="truncate text-sm text-muted-foreground">
-            {task.location}
-            {task.lastCompletion === null
-              ? " · never done"
-              : ` · last ${formatDateTime(task.lastCompletion.doneAt)}`}
+            {subtitle}
           </div>
           <div className="mt-1">
             <DueStatusBadge task={task} />
@@ -87,12 +72,20 @@ export function TaskCard({
         <Button
           size="icon"
           aria-label={`Complete ${task.title}`}
-          disabled={busy}
-          onClick={handleComplete}
+          onClick={() => {
+            setOpen(true);
+          }}
         >
           <Check className="size-5" />
         </Button>
       </CardContent>
+      <CompletionModal
+        taskId={task.id}
+        title={task.title}
+        open={open}
+        onOpenChange={setOpen}
+        onDone={onChanged}
+      />
     </Card>
   );
 }

@@ -30,3 +30,30 @@ export function computeDueState(
   const status = dueDay > today ? "ok" : dueDay === today ? "due" : "overdue";
   return { status, dueAt: isoDate(dueDay) };
 }
+
+/**
+ * Hue (0–120) for the due countdown: 120 green at just-done, 30 orange two days
+ * before due, 0 red at/after due — interpolated and scaled to the interval.
+ * Null for ad-hoc tasks (no countdown).
+ */
+export function dueColorHue(
+  intervalDays: number | null,
+  dueAt: string | null,
+  now: Date,
+): number | null {
+  if (intervalDays === null || dueAt === null) {
+    return null;
+  }
+  const daysUntilDue = utcDayNumber(new Date(dueAt)) - utcDayNumber(now);
+  if (daysUntilDue <= 0) {
+    return 0;
+  }
+  if (daysUntilDue >= intervalDays) {
+    return 120;
+  }
+  if (daysUntilDue >= 2) {
+    const t = (daysUntilDue - 2) / Math.max(intervalDays - 2, 1);
+    return 30 + t * 90;
+  }
+  return (daysUntilDue / 2) * 30;
+}
