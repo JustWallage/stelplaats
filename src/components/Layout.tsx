@@ -1,5 +1,6 @@
 import { Brush, House, Leaf, Zap } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
+import { useUser } from "@/components/AuthGate";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -38,12 +39,16 @@ function NavItems({ orientation }: { orientation: "bottom" | "side" }) {
 }
 
 export function Layout() {
+  const email = useUser();
   return (
     <div className="min-h-dvh lg:flex">
       {/* Desktop sidebar */}
       <aside className="hidden border-r lg:flex lg:w-56 lg:flex-col lg:gap-1 lg:p-4">
         <div className="px-3 py-2 text-lg font-bold">Stelplaats</div>
         <NavItems orientation="side" />
+        <div className="mt-auto truncate px-3 py-2 text-xs text-muted-foreground">
+          {email}
+        </div>
       </aside>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-24 pt-6 lg:pb-8">

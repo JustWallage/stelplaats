@@ -21,7 +21,4 @@
     "shadcn",
     "tw-animate-css",
   ],
-  // TEMPORARY during initial build-out: exports/types checks disabled until all
-  // consumers exist (restored to full strictness in the CLAUDE.md task).
-  "exclude": ["exports", "types"],
 }

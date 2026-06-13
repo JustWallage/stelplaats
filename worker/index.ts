@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { meSchema } from "../shared/api";
 import type { AppEnv } from "./env";
 import { tasksRoutes } from "./routes/tasks";
 import { testResetRoute } from "./routes/test-reset";
@@ -22,7 +23,9 @@ app.get("/api/ws", (c) => {
 app.use("/api/*", authMiddleware);
 
 app.get("/api/health", (c) => c.json({ ok: true, email: c.get("userEmail") }));
-app.get("/api/me", (c) => c.json({ email: c.get("userEmail") }));
+app.get("/api/me", (c) =>
+  c.json(meSchema.parse({ email: c.get("userEmail") })),
+);
 app.route("/api/tasks", tasksRoutes);
 
 // Test-only surface. Fail closed: anything that is not exactly e2e/local —

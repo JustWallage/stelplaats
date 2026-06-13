@@ -1,6 +1,6 @@
 import type { ZodType } from "zod";
 
-export class ApiRequestError extends Error {
+class ApiRequestError extends Error {
   constructor(
     public readonly status: number,
     message: string,
