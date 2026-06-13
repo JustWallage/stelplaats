@@ -80,7 +80,7 @@ stelplaats/
 ├── worker/                    # CLAUDE.md + Hono app
 │   ├── index.ts               # composition root: env parsing, middleware, route registration, DO export
 │   ├── middleware/auth.ts     # THE ONLY file with identity/test logic (§8)
-│   ├── routes/                # tasks.ts, completions.ts, me.ts, health.ts, test-reset.ts
+│   ├── routes/                # tasks.ts, comments.ts, test-reset.ts
 │   ├── do/WebsocketDO.ts      # §7
 │   └── lib/
 ├── db/                        # CLAUDE.md + schema.ts (drizzle) + migrations/*.sql (generated)
@@ -91,15 +91,16 @@ stelplaats/
 
 ## 5. Data model (Drizzle schema, D1)
 
-One unified model covers cleaning and plants; `kind` keeps the UI views separate.
+One unified model covers cleaning, plants and generic house tasks; `kind` keeps the UI views separate. Tasks are recurring counters, not one-off todos: completing one logs a `completions` row and the due state is recomputed from it.
 
 ```ts
 // db/schema.ts
 export const tasks = sqliteTable("tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(), // "Vacuum living room", "Water monstera"
-  kind: text("kind", { enum: ["cleaning", "plants"] }).notNull(),
-  location: text("location").notNull(), // room / plant spot
+  kind: text("kind", { enum: ["cleaning", "plants", "house"] }).notNull(),
+  location: text("location").notNull(), // room / plant spot; "" = none
+  description: text("description"), // optional how-to / notes
   intervalDays: integer("interval_days"), // null = ad-hoc, no due date
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   archivedAt: integer("archived_at", { mode: "timestamp" }),
@@ -110,31 +111,45 @@ export const completions = sqliteTable("completions", {
   taskId: integer("task_id")
     .notNull()
     .references(() => tasks.id),
-  doneBy: text("done_by").notNull(), // user email
+  doneBy: text("done_by").notNull(), // user email; editable/overridable
   doneAt: integer("done_at", { mode: "timestamp" }).notNull(),
   note: text("note"),
+});
+
+export const comments = sqliteTable("comments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  taskId: integer("task_id")
+    .notNull()
+    .references(() => tasks.id),
+  author: text("author").notNull(), // user email
+  body: text("body").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 ```
 
 - Row types are **inferred** (`typeof tasks.$inferSelect`) — never hand-written.
-- Due logic is computed, not stored: `due = lastDoneAt + intervalDays` (never done → due now). Overdue = due < now. Plain function in `shared/`, unit-tested.
+- `location` is NOT NULL in the DB; optional location is the empty-string sentinel, converted to `null` at the API boundary (avoids a D1-hostile table rebuild — `DROP TABLE` is blocked while FKs reference `tasks`, and `PRAGMA foreign_keys=OFF` is a no-op inside the migration transaction).
+- Users (`doneBy`/`author`) are the two allow-listed emails, mapped to friendly names (Just / Suus) by `shared/users.ts`; the logger is overridable per completion and defaults to the current user.
+- Due logic is computed, not stored: `due = lastDoneAt + intervalDays` (never done → due now). Overdue = due < now. Plain functions in `shared/due.ts` (status + a green→orange→red countdown hue), unit-tested.
 - Migrations: `drizzle-kit generate` writes plain SQL to `db/migrations/`; applied with `wrangler d1 migrations apply` (local/remote). Migrations are additive (expand/contract), reviewed before commit.
 
 ## 6. API (Hono, `/api/*`)
 
 All request/response bodies validated with Zod schemas from `shared/api.ts`; handlers use the inferred types.
 
-| Route                            | Purpose                                                                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/health`                | auth/liveness check (used by frontend AuthGate)                                                                                       |
-| `GET /api/me`                    | current user email                                                                                                                    |
-| `GET /api/tasks`                 | all active tasks, each with `lastCompletion` and computed due state                                                                   |
-| `POST /api/tasks`                | create task                                                                                                                           |
-| `PATCH /api/tasks/:id`           | edit / archive                                                                                                                        |
-| `POST /api/tasks/:id/complete`   | record completion (optional note)                                                                                                     |
-| `GET /api/tasks/:id/completions` | history, newest first                                                                                                                 |
-| `GET /api/ws`                    | WebSocket upgrade → forwarded to `WebsocketDO`                                                                                        |
-| `POST /api/test/reset`           | wipe + reseed DB. **Registered in the composition root only when `ENVIRONMENT !== "production"`** — the route does not exist in prod. |
+| Route                                                 | Purpose                                                                                                                               |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                                     | auth/liveness check (used by frontend AuthGate)                                                                                       |
+| `GET /api/me`                                         | current user email                                                                                                                    |
+| `GET /api/tasks`                                      | active tasks (or archived with `?archived=true`), each with `lastCompletion` and computed due state                                   |
+| `POST /api/tasks`                                     | create task (optional `lastDoneAt` seeds a first completion)                                                                          |
+| `PATCH /api/tasks/:id`                                | edit (title, location, description, interval) / archive                                                                               |
+| `POST /api/tasks/:id/complete`                        | record completion (optional note, `doneBy`, `doneAt`)                                                                                 |
+| `GET /api/tasks/:id/completions`                      | history, newest first                                                                                                                 |
+| `PATCH`/`DELETE …/completions/:cid`                   | edit (who/when/note) or delete a history record; recomputes due state                                                                 |
+| `GET`/`POST …/:id/comments`, `DELETE …/comments/:cid` | per-task comment thread (add + delete)                                                                                                |
+| `GET /api/ws`                                         | WebSocket upgrade → forwarded to `WebsocketDO`                                                                                        |
+| `POST /api/test/reset`                                | wipe + reseed DB. **Registered in the composition root only when `ENVIRONMENT !== "production"`** — the route does not exist in prod. |
 
 Mutating handlers broadcast a WS event (fire-and-forget) after the DB write succeeds.
 
@@ -146,7 +161,7 @@ iglympics pattern, renamed and co-located:
 - Single instance via `idFromName("global")`.
 - **Hibernation API**: `state.acceptWebSocket(server)` on upgrade; sessions restored from `state.getWebSockets()` in the constructor; `webSocketClose` prunes.
 - Internal `POST /broadcast` on the DO, reachable only via the DO stub from worker code (never routed through Hono).
-- Events are a Zod **discriminated union** in `shared/ws-events.ts`: `task_created`, `task_updated`, `task_completed` — `{ type, payload }`. Adding an event type = one schema change, typed on both ends.
+- Events are a Zod **discriminated union** in `shared/ws-events.ts`: `task_created`, `task_updated` (also fired on completion edit/delete, since due state shifts), `task_completed`, `comment_created`, `comment_deleted` — `{ type, payload }`. Adding an event type = one schema change, typed on both ends.
 - Frontend: `WebSocketContext` with `subscribe(type, handler)`, 3s auto-reconnect, graceful degradation (app fully works without the socket; events just trigger `mutate()` revalidation).
 - Auth note: `/api/ws` is exempt from the app-level auth middleware (browsers can't set custom headers on WebSocket upgrades). In production the Access cookie still gates it at the edge; the stream carries only task events.
 
@@ -169,7 +184,8 @@ The middleware switches on `ENVIRONMENT` (a wrangler var: `"local" | "e2e" | "pr
 
 ## 9. Frontend
 
-- **Pages**: Dashboard (due + overdue across both kinds, one-tap complete), Cleaning (kind-filtered list + history), Plants (same), Task detail (history, edit), Home Assistant (placeholder), accessed via bottom tab bar on mobile / sidebar on desktop.
+- **Pages**: Dashboard (Upcoming — every overdue task plus enough soonest-due to fill three — and Ad-hoc — the three done longest ago), Cleaning / Plants / House (kind-filtered lists with an archived section), Task detail (description, editable/deletable history cards, comment thread, "I did this" modal, back button), Home Assistant (placeholder), accessed via bottom tab bar on mobile / sidebar on desktop.
+- **Completion** is confirmed through a modal (optional note, optional Just/Suus override defaulting to the current user); task cards carry a green→orange→red left-border gradient for time-until-due.
 - **Layout**: mobile-first as the design target, but **with Tailwind breakpoints** (unlike iglympics) so desktop gets a real layout (centered content column → multi-column dashboard at `lg:`).
 - **Gating**: `AuthGate` (calls `/api/health`; on 401/redirect shows login) wrapping the router, iglympics-style contexts: `WebSocketContext`.
 - **Data**: `useCachedFetch<T>(url)` (module-level cache, background revalidate, `mutate()`), WS subscriptions call `mutate()`. Components never `fetch` directly.
