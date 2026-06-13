@@ -1,3 +1,6 @@
+import type { DueStatus } from "@shared/api";
+import { daysUntilDue } from "@shared/due";
+
 export const formatDateTime = (iso: string): string =>
   new Date(iso).toLocaleString("en-GB", {
     day: "numeric",
@@ -24,4 +27,29 @@ export const formatRelative = (iso: string, now: Date = new Date()): string => {
     return "yesterday";
   }
   return `${String(days)} days ago`;
+};
+
+/** Human countdown to a task's next due date — the card's headline. */
+export const formatDueCountdown = (
+  status: DueStatus,
+  dueAt: string | null,
+  now: Date = new Date(),
+): string => {
+  if (status === "adhoc" || dueAt === null) {
+    return "Ad-hoc";
+  }
+  const days = daysUntilDue(dueAt, now);
+  if (days >= 2) {
+    return `${String(days)} days left`;
+  }
+  if (days === 1) {
+    return "1 day left";
+  }
+  if (days === 0) {
+    return "Due today";
+  }
+  if (days === -1) {
+    return "1 day overdue";
+  }
+  return `${String(-days)} days overdue`;
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDueState, dueColorHue } from "./due";
+import { computeDueState, daysUntilDue, dueColorHue } from "./due";
 
 const noon = (isoDate: string) => new Date(`${isoDate}T12:00:00Z`);
 
@@ -53,6 +53,21 @@ describe("computeDueState", () => {
       status: "due",
       dueAt: "2026-06-12",
     });
+  });
+});
+
+describe("daysUntilDue", () => {
+  const now = noon("2026-06-12");
+
+  it("counts whole UTC days until the due date", () => {
+    expect(daysUntilDue("2026-06-19", now)).toBe(7);
+    expect(daysUntilDue("2026-06-13", now)).toBe(1);
+  });
+
+  it("is zero on the due date and negative once overdue", () => {
+    expect(daysUntilDue("2026-06-12", now)).toBe(0);
+    expect(daysUntilDue("2026-06-11", now)).toBe(-1);
+    expect(daysUntilDue("2026-06-09", now)).toBe(-3);
   });
 });
 

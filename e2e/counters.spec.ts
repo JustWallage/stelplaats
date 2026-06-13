@@ -87,7 +87,8 @@ test("deletes a history record and the task becomes due again", async ({
 
   await page.getByRole("button", { name: "Delete record" }).click();
   await expect(page.getByText("Never completed yet.")).toBeVisible();
-  await expect(page.getByText("Due", { exact: true })).toBeVisible();
+  await expect(page.getByText("Due today")).toBeVisible();
+  await expect(page.getByText("Never done")).toBeVisible();
 });
 
 test("adds and deletes a comment", async ({ page, request }) => {
