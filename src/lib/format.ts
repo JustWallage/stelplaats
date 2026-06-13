@@ -3,8 +3,9 @@ import { daysUntilDue } from "@shared/due";
 
 export const formatDateTime = (iso: string): string =>
   new Date(iso).toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
