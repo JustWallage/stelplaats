@@ -20,7 +20,7 @@ test("create, complete via modal, inspect history, archive", async ({
     .getByRole("button", { name: "Complete Mop kitchen floor" })
     .click();
   await page.getByRole("button", { name: "Log it" }).click();
-  await expect(page.getByText(/OK · next/)).toBeVisible();
+  await expect(page.getByText(/OK · next \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
 
   // History shows the completion with the test identity
   await card.click();

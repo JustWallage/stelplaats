@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { dueColor } from "@/lib/dueColor";
-import { formatRelative } from "@/lib/format";
+import { formatDate, formatRelative } from "@/lib/format";
 
 const dueBadge: Record<
   DueStatus,
@@ -29,7 +29,7 @@ export function DueStatusBadge({ task }: { task: TaskWithStatus }) {
     <Badge variant={badge.variant}>
       {badge.label}
       {task.due.status === "ok" && task.due.dueAt !== null
-        ? ` · next ${task.due.dueAt}`
+        ? ` · next ${formatDate(task.due.dueAt)}`
         : ""}
     </Badge>
   );

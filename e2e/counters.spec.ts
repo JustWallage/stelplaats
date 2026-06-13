@@ -57,7 +57,7 @@ test("logs a completion at a chosen date", async ({ page, request }) => {
   await page.getByRole("button", { name: "Log it" }).click();
 
   await page.goto(`/tasks/${String(id)}`);
-  await expect(page.getByText(/15 Jan/)).toBeVisible();
+  await expect(page.getByText(/15\/01\/2026/)).toBeVisible();
 });
 
 test("edits a history record's note", async ({ page, request }) => {
