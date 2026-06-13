@@ -67,7 +67,7 @@ jobs:
 
       - name: Run E2E suite against the ephemeral deployment
         env:
-          BASE_URL: https://${{ env.E2E_NAME }}.${{ secrets.WORKERS_DEV_SUBDOMAIN }}.workers.dev
+          BASE_URL: https://${{ env.E2E_NAME }}.${{ secrets.WORKERS_DEV_SUBDOMAIN }}
         run: pnpm test:e2e
 
       - name: Upload Playwright report

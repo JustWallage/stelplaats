@@ -42,12 +42,9 @@ else
 fi
 
 # --- GitHub Actions secrets ---------------------------------------------------
-# gh encrypts values client-side with the repo public key before upload.
-# NB: the value is read from stdin. Do NOT pass `--body -` — gh treats that as
-# the literal value "-" rather than "read stdin", which silently sets every
-# secret to a dash.
 say "Setting GitHub Actions secrets"
 for key in "${REQUIRED_KEYS[@]}"; do
+  # value from stdin; `--body -` would set the literal string "-"
   printf '%s' "${!key}" | gh secret set "$key"
   say "  secret $key set"
 done

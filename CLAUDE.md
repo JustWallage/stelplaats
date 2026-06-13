@@ -34,3 +34,6 @@ docs/      BOOTSTRAP.md (manual setup), DOMAIN-MIGRATION.md (deferred DNS move)
 - knip fails on unused exports/files/deps: don't export "for later".
 - After changing `wrangler.jsonc`, run `pnpm cf-typegen` (also runs in check).
 - Every change: `pnpm check` green + relevant e2e coverage.
+- No comments unless absolutely necessary to understand non-obvious code, and
+  then keep them short and inline. Never write comments that explain a change,
+  restate what the code does, or narrate history — the diff and git do that.

@@ -54,10 +54,27 @@ migrations. Re-running is safe.
 
 Push to `main` (or push a branch with `run-pipeline` in the commit title for a
 no-deploy dry run). The pipeline terraform-applies the Cloudflare resources
-(D1 prod, Access app with the Google allowlist) and deploys to
-`https://stelplaats.<WORKERS_DEV_SUBDOMAIN>.workers.dev`.
+(prod D1 + the Google IdP) and deploys to
+`https://stelplaats.<subdomain>.workers.dev`.
+
+## 6. Enable Access on the workers.dev URL (interim — manual, one-time)
+
+Cloudflare Access can only be managed by Terraform once the app is on a custom
+domain (a self-hosted Access app rejects a `workers.dev` hostname with "domain
+does not belong to zone"). **Until the domain move, the deployed worker is
+publicly reachable until you do this**, so do it before putting real data in:
+
+1. Dashboard → Compute (Workers) → `stelplaats` → Settings → Domains & Routes →
+   on the `*.workers.dev` route, **Enable Cloudflare Access**.
+2. In the Access policy, choose the **Google** identity provider (the one
+   Terraform created) and add an Allow policy including exactly
+   `just@wallage.nl` and `suusraedts2018@gmail.com`.
+
+Once the custom domain lands (next section), Terraform manages the Access
+application end-to-end and this toggle can be removed.
 
 ## Later: custom domain
 
 The move of `stelplaats.just.wallage.nl` is deliberately deferred —
-see [DOMAIN-MIGRATION.md](DOMAIN-MIGRATION.md).
+see [DOMAIN-MIGRATION.md](DOMAIN-MIGRATION.md). Setting `custom_domain` makes
+Terraform create the self-hosted Access app + Workers custom domain.

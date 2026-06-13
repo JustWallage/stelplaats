@@ -29,12 +29,9 @@ provider "cloudflare" {
 }
 
 locals {
-  # workers.dev until the wallage.nl zone moves to Cloudflare
-  # (see docs/DOMAIN-MIGRATION.md), then var.custom_domain takes over.
-  app_hostname = coalesce(var.custom_domain, "stelplaats.${var.workers_dev_subdomain}.workers.dev")
+  app_hostname = coalesce(var.custom_domain, "stelplaats.${var.workers_dev_subdomain}")
 }
 
-# --- D1 (production) ---
 resource "cloudflare_d1_database" "prod" {
   account_id = var.cloudflare_account_id
   name       = "stelplaats-prod"
@@ -56,10 +53,14 @@ resource "cloudflare_zero_trust_access_identity_provider" "google" {
   }
 }
 
+# Gated on custom_domain: self_hosted apps require a domain in a zone you own,
+# so a workers.dev hostname is rejected with "domain does not belong to zone".
 resource "cloudflare_zero_trust_access_application" "stelplaats" {
+  count = var.custom_domain == null ? 0 : 1
+
   account_id                = var.cloudflare_account_id
   name                      = "stelplaats"
-  domain                    = local.app_hostname
+  domain                    = var.custom_domain
   type                      = "self_hosted"
   session_duration          = "168h"
   auto_redirect_to_identity = true
