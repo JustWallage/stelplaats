@@ -46,6 +46,7 @@
     },
     // Production: D1 id placeholder substituted by CI from terraform output.
     "production": {
+      "name": "stelplaats",
       "vars": {
         "ENVIRONMENT": "production",
         "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
