@@ -40,3 +40,5 @@ docs/      BOOTSTRAP.md (manual setup), DOMAIN-MIGRATION.md (deferred DNS move)
 - No comments unless absolutely necessary to understand non-obvious code, and
   then keep them short and inline. Never write comments that explain a change,
   restate what the code does, or narrate history — the diff and git do that.
+- Keep [README.md](README.md) current for big changes only (new capabilities,
+  shifts in architecture or workflow); skip it for small changes it never mentions.
