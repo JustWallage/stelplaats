@@ -28,6 +28,11 @@ async function parseJsonBody(req: Request): Promise<unknown> {
   }
 }
 
+// A one-off target date is a calendar day; anchor it at noon UTC so it round
+// trips back to the same YYYY-MM-DD regardless of timezone.
+const toDueDate = (date: string | null): Date | null =>
+  date === null ? null : new Date(`${date}T12:00:00Z`);
+
 async function findTask(db: Db, id: number): Promise<TaskRow | null> {
   const rows = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
   return rows[0] ?? null;
@@ -78,16 +83,17 @@ tasksRoutes.post("/", async (c) => {
     return c.json({ error: "Invalid request body" }, 400);
   }
   const db = getDb(c.env);
-  const { title, kind, location, description, intervalDays, lastDoneAt } =
-    parsed.data;
+  const data = parsed.data;
   const inserted = await db
     .insert(tasks)
     .values({
-      title,
-      kind,
-      location: location ?? "",
-      description,
-      intervalDays,
+      title: data.title,
+      kind: data.kind,
+      type: data.type,
+      location: data.location ?? "",
+      description: data.description,
+      intervalDays: data.type === "scheduled" ? data.intervalDays : null,
+      dueDate: data.type === "one_off" ? toDueDate(data.dueDate) : null,
       createdAt: new Date(),
     })
     .returning();
@@ -95,6 +101,7 @@ tasksRoutes.post("/", async (c) => {
   if (task === undefined) {
     return c.json({ error: "Insert failed" }, 500);
   }
+  const lastDoneAt = data.type === "one_off" ? null : data.lastDoneAt;
   let seed: CompletionRow | null = null;
   if (lastDoneAt !== null) {
     const seedRows = await db
@@ -138,26 +145,20 @@ tasksRoutes.patch("/:id", async (c) => {
   }
   const { data, db, task } = result;
   const id = task.id;
-  const { archived, title, location, description, intervalDays } = data;
   const updates: Partial<typeof tasks.$inferInsert> = {};
-  if (title !== undefined) {
-    updates.title = title;
+  if ("archived" in data) {
+    updates.archivedAt = data.archived ? new Date() : null;
+  } else {
+    // A content edit sets every type-dependent column explicitly, clearing the
+    // ones the (possibly changed) type no longer uses.
+    updates.title = data.title;
+    updates.location = data.location ?? "";
+    updates.description = data.description;
+    updates.type = data.type;
+    updates.intervalDays = data.type === "scheduled" ? data.intervalDays : null;
+    updates.dueDate = data.type === "one_off" ? toDueDate(data.dueDate) : null;
   }
-  if (location !== undefined) {
-    updates.location = location ?? "";
-  }
-  if (description !== undefined) {
-    updates.description = description;
-  }
-  if (intervalDays !== undefined) {
-    updates.intervalDays = intervalDays;
-  }
-  if (archived !== undefined) {
-    updates.archivedAt = archived ? new Date() : null;
-  }
-  if (Object.keys(updates).length > 0) {
-    await db.update(tasks).set(updates).where(eq(tasks.id, id));
-  }
+  await db.update(tasks).set(updates).where(eq(tasks.id, id));
   const updated = await findTask(db, id);
   if (updated === null) {
     return c.json({ error: "Task not found" }, 404);
@@ -190,7 +191,16 @@ tasksRoutes.post("/:id/complete", async (c) => {
   if (completion === undefined) {
     return c.json({ error: "Insert failed" }, 500);
   }
-  const payload = toTaskWithStatus(existing, completion, new Date());
+  const now = new Date();
+  let task = existing;
+  if (existing.type === "one_off") {
+    await db
+      .update(tasks)
+      .set({ archivedAt: now })
+      .where(eq(tasks.id, existing.id));
+    task = { ...existing, archivedAt: now };
+  }
+  const payload = toTaskWithStatus(task, completion, now);
   await broadcast(c.env, {
     type: "task_completed",
     payload: { task: payload, completion: toCompletion(completion) },

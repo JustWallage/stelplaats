@@ -37,7 +37,7 @@ export const formatDueCountdown = (
   now: Date = new Date(),
 ): string => {
   if (status === "adhoc" || dueAt === null) {
-    return "Ad-hoc";
+    return "As needed";
   }
   const days = daysUntilDue(dueAt, now);
   if (days >= 2) {

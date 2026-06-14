@@ -1,6 +1,11 @@
-import { taskWithStatusSchema, type TaskKind } from "@shared/api";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import {
+  taskWithStatusSchema,
+  type TaskKind,
+  type TaskType,
+  type TaskWithStatus,
+} from "@shared/api";
+import { Pencil, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,53 +19,109 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, jsonInit } from "@/lib/api";
 
+const TYPE_OPTIONS: { value: TaskType; label: string; hint: string }[] = [
+  {
+    value: "scheduled",
+    label: "Scheduled",
+    hint: "Repeats on a fixed schedule — set the interval in days.",
+  },
+  {
+    value: "as_needed",
+    label: "As needed",
+    hint: "Repeats whenever; no due date.",
+  },
+  {
+    value: "one_off",
+    label: "One-off",
+    hint: "Done once, then archived. An optional target date is allowed.",
+  },
+];
+
+const dateToIso = (date: string): string =>
+  new Date(`${date}T12:00:00Z`).toISOString();
+
 export function TaskForm({
   kind,
-  onCreated,
+  task,
+  onSaved,
 }: {
   kind: TaskKind;
-  onCreated: () => void;
+  task?: TaskWithStatus;
+  onSaved: () => void;
 }) {
+  const isEdit = task !== undefined;
   const [open, setOpen] = useState(false);
+  const [type, setType] = useState<TaskType | "">("");
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [intervalDays, setIntervalDays] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [lastDone, setLastDone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const reset = () => {
-    setTitle("");
-    setLocation("");
-    setDescription("");
-    setIntervalDays("");
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    setError(null);
+    setType(task?.type ?? "");
+    setTitle(task?.title ?? "");
+    setLocation(task?.location ?? "");
+    setDescription(task?.description ?? "");
+    setIntervalDays(
+      task?.intervalDays == null ? "" : String(task.intervalDays),
+    );
+    setDueDate(task?.dueDate ?? "");
     setLastDone("");
+  }, [open, task]);
+
+  const buildBody = (chosen: TaskType): unknown => {
+    const base = {
+      title,
+      kind,
+      location: location.trim() === "" ? null : location,
+      description: description.trim() === "" ? null : description,
+    };
+    const lastDoneAt = lastDone === "" ? null : dateToIso(lastDone);
+    if (chosen === "scheduled") {
+      const fields = {
+        ...base,
+        type: chosen,
+        intervalDays: Number(intervalDays),
+      };
+      return isEdit ? fields : { ...fields, lastDoneAt };
+    }
+    if (chosen === "as_needed") {
+      return isEdit
+        ? { ...base, type: chosen }
+        : { ...base, type: chosen, lastDoneAt };
+    }
+    return { ...base, type: chosen, dueDate: dueDate === "" ? null : dueDate };
   };
 
   const handleSubmit = () => {
+    if (type === "") {
+      return;
+    }
     setBusy(true);
     setError(null);
-    apiFetch("/api/tasks", taskWithStatusSchema, {
-      ...jsonInit("POST", {
-        title,
-        kind,
-        location: location.trim() === "" ? null : location,
-        description: description.trim() === "" ? null : description,
-        intervalDays: intervalDays === "" ? null : Number(intervalDays),
-        lastDoneAt:
-          lastDone === ""
-            ? null
-            : new Date(`${lastDone}T12:00:00Z`).toISOString(),
-      }),
-    })
+    apiFetch(
+      isEdit ? `/api/tasks/${String(task.id)}` : "/api/tasks",
+      taskWithStatusSchema,
+      { ...jsonInit(isEdit ? "PATCH" : "POST", buildBody(type)) },
+    )
       .then(() => {
         setOpen(false);
-        reset();
-        onCreated();
+        onSaved();
       })
       .catch(() => {
-        setError("Could not create the task — check the fields.");
+        setError(
+          isEdit
+            ? "Could not save the task — check the fields."
+            : "Could not create the task — check the fields.",
+        );
       })
       .finally(() => {
         setBusy(false);
@@ -69,12 +130,22 @@ export function TaskForm({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>
-        <Plus className="size-4" /> Add task
+      <DialogTrigger
+        render={<Button variant={isEdit ? "outline" : "default"} />}
+      >
+        {isEdit ? (
+          <>
+            <Pencil className="size-4" /> Edit
+          </>
+        ) : (
+          <>
+            <Plus className="size-4" /> Add task
+          </>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New {kind} task</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit task" : `New ${kind} task`}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(event) => {
@@ -119,37 +190,82 @@ export function TaskForm({
               placeholder="How it's done, what to watch out for…"
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="task-interval">
-              Repeat every … days (empty = ad-hoc)
-            </Label>
-            <Input
-              id="task-interval"
-              type="number"
-              min={1}
-              max={365}
-              value={intervalDays}
-              onChange={(e) => {
-                setIntervalDays(e.target.value);
-              }}
-            />
+            <Label>Type</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {TYPE_OPTIONS.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={type === option.value ? "default" : "outline"}
+                  onClick={() => {
+                    setType(option.value);
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {type === ""
+                ? "Choose a task type."
+                : TYPE_OPTIONS.find((option) => option.value === type)?.hint}
+            </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="task-last-done">Last done (optional)</Label>
-            <Input
-              id="task-last-done"
-              type="date"
-              value={lastDone}
-              onChange={(e) => {
-                setLastDone(e.target.value);
-              }}
-            />
-          </div>
+
+          {type === "scheduled" && (
+            <div className="space-y-2">
+              <Label htmlFor="task-interval">Days in between</Label>
+              <Input
+                id="task-interval"
+                type="number"
+                min={1}
+                max={365}
+                value={intervalDays}
+                onChange={(e) => {
+                  setIntervalDays(e.target.value);
+                }}
+                required
+              />
+            </div>
+          )}
+          {type === "one_off" && (
+            <div className="space-y-2">
+              <Label htmlFor="task-due">Target date (optional)</Label>
+              <Input
+                id="task-due"
+                type="date"
+                value={dueDate}
+                onChange={(e) => {
+                  setDueDate(e.target.value);
+                }}
+              />
+            </div>
+          )}
+          {!isEdit && (type === "scheduled" || type === "as_needed") && (
+            <div className="space-y-2">
+              <Label htmlFor="task-last-done">Last done (optional)</Label>
+              <Input
+                id="task-last-done"
+                type="date"
+                value={lastDone}
+                onChange={(e) => {
+                  setLastDone(e.target.value);
+                }}
+              />
+            </div>
+          )}
+
           {error !== null && (
             <p className="text-sm text-destructive">{error}</p>
           )}
-          <Button type="submit" className="w-full" disabled={busy}>
-            Create
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={busy || type === ""}
+          >
+            {isEdit ? "Save" : "Create"}
           </Button>
         </form>
       </DialogContent>

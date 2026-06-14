@@ -10,6 +10,7 @@ async function createTask(
     data: {
       title: "Vacuum living room",
       kind: "cleaning",
+      type: "scheduled",
       location: "Living room",
       description: null,
       intervalDays: 7,
@@ -107,8 +108,9 @@ test("adds and deletes a comment", async ({ page, request }) => {
 test("seeds a first completion from the last-done date", async ({ page }) => {
   await page.goto("/plants");
   await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Scheduled" }).click();
   await page.getByLabel("Title").fill("Fertilise ferns");
-  await page.getByLabel(/Repeat every/).fill("30");
+  await page.getByLabel("Days in between").fill("30");
   await page.getByLabel("Last done (optional)").fill("2026-06-01");
   await page.getByRole("button", { name: "Create" }).click();
 
@@ -147,8 +149,9 @@ test("creates and lists a house task", async ({ page }) => {
   await expect(page).toHaveURL(/\/house$/);
 
   await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Scheduled" }).click();
   await page.getByLabel("Title").fill("Replace smoke alarm battery");
-  await page.getByLabel(/Repeat every/).fill("180");
+  await page.getByLabel("Days in between").fill("180");
   await page.getByRole("button", { name: "Create" }).click();
 
   await expect(page.getByText("Replace smoke alarm battery")).toBeVisible();

@@ -40,12 +40,14 @@ async function completeTask(
 export function CompletionModal({
   taskId,
   title,
+  archivesOnComplete = false,
   open,
   onOpenChange,
   onDone,
 }: {
   taskId: number;
   title: string;
+  archivesOnComplete?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDone: () => void;
@@ -152,6 +154,11 @@ export function CompletionModal({
               }}
             />
           </div>
+          {archivesOnComplete && (
+            <p className="text-sm text-muted-foreground">
+              This is a one-off — completing it will archive the task.
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={busy}>
             Log it
           </Button>

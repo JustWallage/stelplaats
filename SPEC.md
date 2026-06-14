@@ -91,7 +91,13 @@ stelplaats/
 
 ## 5. Data model (Drizzle schema, D1)
 
-One unified model covers cleaning, plants and generic house tasks; `kind` keeps the UI views separate. Tasks are recurring counters, not one-off todos: completing one logs a `completions` row and the due state is recomputed from it.
+One unified model covers cleaning, plants and generic house tasks; `kind` keeps the UI views separate. Each task has an explicit `type`, chosen at creation and editable afterwards:
+
+- **`scheduled`** — recurs on a fixed interval (`intervalDays`, required); due = `lastDoneAt + intervalDays`.
+- **`as_needed`** — recurs with no schedule; never has a due date (the former "ad-hoc" behaviour).
+- **`one_off`** — done a single time, then auto-archived on completion; may carry an optional target date (`dueDate`).
+
+`type` is stored, not derived: an `as_needed` task and a dateless `one_off` are otherwise identical at the column level but behave differently. Completing a task logs a `completions` row and (for the recurring types) the due state is recomputed from it.
 
 ```ts
 // db/schema.ts
@@ -99,9 +105,11 @@ export const tasks = sqliteTable("tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(), // "Vacuum living room", "Water monstera"
   kind: text("kind", { enum: ["cleaning", "plants", "house"] }).notNull(),
+  type: text("type", { enum: ["scheduled", "as_needed", "one_off"] }).notNull(),
   location: text("location").notNull(), // room / plant spot; "" = none
   description: text("description"), // optional how-to / notes
-  intervalDays: integer("interval_days"), // null = ad-hoc, no due date
+  intervalDays: integer("interval_days"), // scheduled only; null otherwise
+  dueDate: integer("due_date", { mode: "timestamp" }), // one_off target; null otherwise
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   archivedAt: integer("archived_at", { mode: "timestamp" }),
 });
@@ -130,7 +138,8 @@ export const comments = sqliteTable("comments", {
 - Row types are **inferred** (`typeof tasks.$inferSelect`) — never hand-written.
 - `location` is NOT NULL in the DB; optional location is the empty-string sentinel, converted to `null` at the API boundary (avoids a D1-hostile table rebuild — `DROP TABLE` is blocked while FKs reference `tasks`, and `PRAGMA foreign_keys=OFF` is a no-op inside the migration transaction).
 - Users (`doneBy`/`author`) are the two allow-listed emails, mapped to friendly names (Just / Suus) by `shared/users.ts`; the logger is overridable per completion and defaults to the current user.
-- Due logic is computed, not stored: `due = lastDoneAt + intervalDays` (never done → due now). Overdue = due < now. Plain functions in `shared/due.ts` (status + a green→orange→red countdown hue), unit-tested.
+- Due logic is computed, not stored, and branches on `type`: `scheduled` → `lastDoneAt + intervalDays` (never done → due now); `as_needed` → no due date (adhoc); `one_off` → its `dueDate` (or "due now, no date" when dateless). Overdue = due < now. Plain functions in `shared/due.ts` (status + a green→orange→red countdown hue, scaled to the interval or, for dated one-offs, a fixed window), unit-tested.
+- Create/edit bodies are Zod **discriminated unions on `type`** (`shared/api.ts`), so an invalid type/field combination (e.g. a scheduled task with no interval, or a one-off carrying an interval) cannot be expressed; `PATCH` is either the archive toggle or a full content edit that clears the columns the new type does not use.
 - Migrations: `drizzle-kit generate` writes plain SQL to `db/migrations/`; applied with `wrangler d1 migrations apply` (local/remote). Migrations are additive (expand/contract), reviewed before commit.
 
 ## 6. API (Hono, `/api/*`)
@@ -142,9 +151,9 @@ All request/response bodies validated with Zod schemas from `shared/api.ts`; han
 | `GET /api/health`                                     | auth/liveness check (used by frontend AuthGate)                                                                                       |
 | `GET /api/me`                                         | current user email                                                                                                                    |
 | `GET /api/tasks`                                      | active tasks (or archived with `?archived=true`), each with `lastCompletion` and computed due state                                   |
-| `POST /api/tasks`                                     | create task (optional `lastDoneAt` seeds a first completion)                                                                          |
-| `PATCH /api/tasks/:id`                                | edit (title, location, description, interval) / archive                                                                               |
-| `POST /api/tasks/:id/complete`                        | record completion (optional note, `doneBy`, `doneAt`)                                                                                 |
+| `POST /api/tasks`                                     | create task of a chosen `type` (recurring types accept a `lastDoneAt` seed; one-off accepts a `dueDate`)                              |
+| `PATCH /api/tasks/:id`                                | archive toggle, or a full content edit (incl. changing `type`)                                                                        |
+| `POST /api/tasks/:id/complete`                        | record completion (optional note, `doneBy`, `doneAt`); a one-off is archived once completed                                           |
 | `GET /api/tasks/:id/completions`                      | history, newest first                                                                                                                 |
 | `PATCH`/`DELETE …/completions/:cid`                   | edit (who/when/note) or delete a history record; recomputes due state                                                                 |
 | `GET`/`POST …/:id/comments`, `DELETE …/comments/:cid` | per-task comment thread (add + delete)                                                                                                |
@@ -184,8 +193,9 @@ The middleware switches on `ENVIRONMENT` (a wrangler var: `"local" | "e2e" | "pr
 
 ## 9. Frontend
 
-- **Pages**: Dashboard (Upcoming — every overdue task plus enough soonest-due to fill three — and Ad-hoc — the three done longest ago), Cleaning / Plants / House (kind-filtered lists with an archived section), Task detail (description, editable/deletable history cards, comment thread, "I did this" modal, back button), Home Assistant (placeholder), accessed via bottom tab bar on mobile / sidebar on desktop.
-- **Completion** is confirmed through a modal (optional note, optional Just/Suus override defaulting to the current user); task cards headline the time-until-due countdown ("N days left" / "Due today" / "N days overdue" / "Ad-hoc") and carry a green→orange→red left-border gradient for the same.
+- **Pages**: Dashboard (Upcoming — every overdue scheduled-or-one-off task plus enough soonest-due to fill three — and As needed — the three done longest ago), Cleaning / Plants / House (kind-filtered lists with an archived section), Task detail (description, editable/deletable history cards, comment thread, "I did this" modal, **Edit** dialog, back button), Home Assistant (placeholder), accessed via bottom tab bar on mobile / sidebar on desktop.
+- **Create / edit** share one `TaskForm` dialog: a required type selector (nothing pre-selected — the submit button stays disabled until a type is chosen) reveals only that type's fields (interval for scheduled, optional target date for one-off).
+- **Completion** is confirmed through a modal (optional note, optional Just/Suus override defaulting to the current user; for a one-off it notes the task will be archived); task cards (and the detail page) headline the time-until-due countdown ("N days left" / "Due today" / "N days overdue" / "As needed") and carry a green→orange→red left-border gradient for the same.
 - **Layout**: mobile-first as the design target, but **with Tailwind breakpoints** (unlike iglympics) so desktop gets a real layout (centered content column → multi-column dashboard at `lg:`).
 - **Gating**: `AuthGate` (calls `/api/health`; on 401/redirect shows login) wrapping the router, iglympics-style contexts: `WebSocketContext`.
 - **Data**: `useCachedFetch<T>(url)` (module-level cache, background revalidate, `mutate()`), WS subscriptions call `mutate()`. Components never `fetch` directly.

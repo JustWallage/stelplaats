@@ -1,24 +1,32 @@
-import type { DueStatus, TaskWithStatus } from "./api";
+import type { DueStatus, TaskType, TaskWithStatus } from "./api";
 import { describe, expect, it } from "vitest";
-import { selectAdhoc, selectUpcoming, sortByDueSoonest } from "./home";
+import { selectAsNeeded, selectUpcoming, sortByDueSoonest } from "./home";
 
 let nextId = 1;
 
 function task(overrides: {
+  type?: TaskType;
   status?: DueStatus;
   dueAt?: string | null;
   intervalDays?: number | null;
+  dueDate?: string | null;
   lastDoneAt?: string | null;
 }): TaskWithStatus {
-  const intervalDays =
-    overrides.intervalDays === undefined ? 7 : overrides.intervalDays;
+  const type = overrides.type ?? "scheduled";
   return {
     id: nextId++,
     title: `Task ${String(nextId)}`,
     kind: "cleaning",
+    type,
     location: null,
     description: null,
-    intervalDays,
+    intervalDays:
+      overrides.intervalDays === undefined
+        ? type === "scheduled"
+          ? 7
+          : null
+        : overrides.intervalDays,
+    dueDate: overrides.dueDate ?? null,
     createdAt: "2026-06-01T00:00:00.000Z",
     archived: false,
     due: {
@@ -58,25 +66,26 @@ describe("selectUpcoming", () => {
     expect(result[2]).toBe(soon);
   });
 
-  it("returns the three soonest when nothing is overdue", () => {
-    const tasks = [
-      task({ status: "ok", dueAt: "2026-06-20" }),
-      task({ status: "due", dueAt: "2026-06-12" }),
-      task({ status: "ok", dueAt: "2026-06-15" }),
-      task({ status: "ok", dueAt: "2026-06-18" }),
-    ];
-    const result = selectUpcoming(tasks);
-    expect(result).toHaveLength(3);
-    expect(result.map((t) => t.due.dueAt)).toEqual([
-      "2026-06-12",
-      "2026-06-15",
-      "2026-06-18",
-    ]);
+  it("includes one-offs, with dateless ones sorted last", () => {
+    const scheduled = task({ status: "due", dueAt: "2026-06-12" });
+    const datedOneOff = task({
+      type: "one_off",
+      status: "ok",
+      dueAt: "2026-06-15",
+      dueDate: "2026-06-15",
+    });
+    const datelessOneOff = task({
+      type: "one_off",
+      status: "due",
+      dueAt: null,
+    });
+    const result = selectUpcoming([datelessOneOff, scheduled, datedOneOff]);
+    expect(result).toEqual([scheduled, datedOneOff, datelessOneOff]);
   });
 
-  it("ignores ad-hoc tasks", () => {
+  it("ignores as-needed tasks", () => {
     const tasks = [
-      task({ intervalDays: null, status: "adhoc" }),
+      task({ type: "as_needed", status: "adhoc" }),
       task({ status: "due", dueAt: "2026-06-12" }),
     ];
     expect(selectUpcoming(tasks)).toHaveLength(1);
@@ -84,13 +93,13 @@ describe("selectUpcoming", () => {
 });
 
 describe("sortByDueSoonest", () => {
-  it("orders scheduled tasks soonest-due first, ad-hoc last", () => {
+  it("orders scheduled tasks soonest-due first, as-needed last", () => {
     const later = task({ status: "ok", dueAt: "2026-06-20" });
     const overdue = task({ status: "overdue", dueAt: "2026-06-01" });
-    const adhoc = task({ intervalDays: null, status: "adhoc" });
+    const asNeeded = task({ type: "as_needed", status: "adhoc" });
     const soon = task({ status: "due", dueAt: "2026-06-12" });
-    const result = sortByDueSoonest([later, adhoc, overdue, soon]);
-    expect(result).toEqual([overdue, soon, later, adhoc]);
+    const result = sortByDueSoonest([later, asNeeded, overdue, soon]);
+    expect(result).toEqual([overdue, soon, later, asNeeded]);
   });
 
   it("does not mutate the input array", () => {
@@ -104,21 +113,22 @@ describe("sortByDueSoonest", () => {
   });
 });
 
-describe("selectAdhoc", () => {
+describe("selectAsNeeded", () => {
   it("orders by done-longest-ago, never-done first, capped at three", () => {
-    const neverDone = task({ intervalDays: null, status: "adhoc" });
+    const neverDone = task({ type: "as_needed", status: "adhoc" });
     const old = task({
-      intervalDays: null,
+      type: "as_needed",
       status: "adhoc",
       lastDoneAt: "2026-01-01T00:00:00.000Z",
     });
     const recent = task({
-      intervalDays: null,
+      type: "as_needed",
       status: "adhoc",
       lastDoneAt: "2026-06-01T00:00:00.000Z",
     });
     const scheduled = task({ status: "due", dueAt: "2026-06-12" });
-    const result = selectAdhoc([recent, old, neverDone, scheduled]);
+    const oneOff = task({ type: "one_off", status: "due", dueAt: null });
+    const result = selectAsNeeded([recent, old, neverDone, scheduled, oneOff]);
     expect(result).toEqual([neverDone, old, recent]);
   });
 });

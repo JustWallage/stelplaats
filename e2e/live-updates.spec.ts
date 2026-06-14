@@ -10,6 +10,7 @@ test("completing a task live-updates another client via WebSocket", async ({
     data: {
       title: "Dust shelves",
       kind: "cleaning",
+      type: "scheduled",
       location: "Hallway",
       description: null,
       intervalDays: 14,

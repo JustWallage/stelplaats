@@ -42,14 +42,21 @@ export function toTaskWithStatus(
     id: task.id,
     title: task.title,
     kind: task.kind,
+    type: task.type,
     location: task.location === "" ? null : task.location,
     description: task.description,
     intervalDays: task.intervalDays,
+    dueDate:
+      task.dueDate === null ? null : task.dueDate.toISOString().slice(0, 10),
     createdAt: task.createdAt.toISOString(),
     archived: task.archivedAt !== null,
     due: computeDueState(
-      task.intervalDays,
-      lastCompletion?.doneAt ?? null,
+      {
+        type: task.type,
+        intervalDays: task.intervalDays,
+        lastDoneAt: lastCompletion?.doneAt ?? null,
+        dueDate: task.dueDate,
+      },
       now,
     ),
     lastCompletion:

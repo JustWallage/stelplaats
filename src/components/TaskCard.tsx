@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { dueColor } from "@/lib/dueColor";
 import { formatDueCountdown, formatRelative } from "@/lib/format";
+import { taskTypeLabel } from "@/lib/taskType";
 
 export function TaskCard({
   task,
@@ -22,6 +23,7 @@ export function TaskCard({
 
   const subtitle = [
     task.location,
+    taskTypeLabel(task),
     task.lastCompletion === null
       ? "never done"
       : `${displayName(task.lastCompletion.doneBy)} · ${formatRelative(task.lastCompletion.doneAt)}`,
@@ -62,6 +64,7 @@ export function TaskCard({
       <CompletionModal
         taskId={task.id}
         title={task.title}
+        archivesOnComplete={task.type === "one_off"}
         open={open}
         onOpenChange={setOpen}
         onDone={onChanged}
