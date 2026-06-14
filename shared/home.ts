@@ -21,6 +21,16 @@ export function selectUpcoming(tasks: TaskWithStatus[]): TaskWithStatus[] {
   return [...overdue, ...rest.slice(0, fill)];
 }
 
+/** A kind list ordered soonest-due first; ad-hoc tasks (no due date) sink last. */
+export function sortByDueSoonest(tasks: TaskWithStatus[]): TaskWithStatus[] {
+  return [...tasks].sort((a, b) => {
+    if (a.due.dueAt === null || b.due.dueAt === null) {
+      return Number(a.due.dueAt === null) - Number(b.due.dueAt === null);
+    }
+    return a.due.dueAt.localeCompare(b.due.dueAt);
+  });
+}
+
 /** The home "Ad-hoc" list: the three ad-hoc tasks done longest ago. */
 export function selectAdhoc(tasks: TaskWithStatus[]): TaskWithStatus[] {
   return tasks
