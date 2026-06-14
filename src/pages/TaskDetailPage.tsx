@@ -92,7 +92,7 @@ export function TaskDetailPage() {
           <p className="mt-2 whitespace-pre-wrap text-sm">{task.description}</p>
         )}
         <p
-          className="mt-3 text-2xl font-bold leading-tight"
+          className="mt-3 text-xl font-semibold leading-tight"
           style={color !== null ? { color } : undefined}
         >
           {formatDueCountdown(task.due.status, task.due.dueAt)}

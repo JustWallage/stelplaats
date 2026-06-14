@@ -36,13 +36,15 @@ export function TaskCard({
     >
       <CardContent className="flex items-center justify-between gap-3 p-4">
         <Link to={`/tasks/${String(task.id)}`} className="min-w-0 flex-1">
+          <div className="truncate text-lg font-semibold leading-tight">
+            {task.title}
+          </div>
           <div
-            className="truncate text-lg font-semibold leading-tight"
+            className="truncate font-medium"
             style={color !== null ? { color } : undefined}
           >
             {countdown}
           </div>
-          <div className="truncate font-medium">{task.title}</div>
           <div className="truncate text-sm text-muted-foreground">
             {subtitle}
           </div>

@@ -72,6 +72,39 @@ test("dashboard shows upcoming tasks and reflects completion", async ({
   await expect(page.getByText("3 days left")).toBeVisible();
 });
 
+test("kind list orders tasks soonest-due first, ad-hoc last", async ({
+  page,
+  request,
+}) => {
+  const mk = (title: string, body: Record<string, unknown>) =>
+    request.post("/api/tasks", {
+      data: {
+        title,
+        kind: "cleaning",
+        location: null,
+        description: null,
+        ...body,
+      },
+    });
+  // Bravo is due after Alpha; Charlie is ad-hoc (no due date) so it sinks last.
+  await mk("Bravo", {
+    intervalDays: 7,
+    lastDoneAt: "2026-03-01T00:00:00.000Z",
+  });
+  await mk("Alpha", {
+    intervalDays: 7,
+    lastDoneAt: "2026-01-01T00:00:00.000Z",
+  });
+  await mk("Charlie", { intervalDays: null, lastDoneAt: null });
+
+  await page.goto("/cleaning");
+  const cards = page.locator('a[href^="/tasks/"]');
+  await expect(cards).toHaveCount(3);
+  await expect(cards.nth(0)).toContainText("Alpha");
+  await expect(cards.nth(1)).toContainText("Bravo");
+  await expect(cards.nth(2)).toContainText("Charlie");
+});
+
 test("validation errors surface in the create dialog", async ({ page }) => {
   await page.goto("/plants");
   await page.getByRole("button", { name: "Add task" }).click();
