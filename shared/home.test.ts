@@ -1,6 +1,6 @@
 import type { DueStatus, TaskType, TaskWithStatus } from "./api";
 import { describe, expect, it } from "vitest";
-import { selectAsNeeded, selectUpcoming } from "./home";
+import { selectAsNeeded, selectUpcoming, sortByDueSoonest } from "./home";
 
 let nextId = 1;
 
@@ -89,6 +89,27 @@ describe("selectUpcoming", () => {
       task({ status: "due", dueAt: "2026-06-12" }),
     ];
     expect(selectUpcoming(tasks)).toHaveLength(1);
+  });
+});
+
+describe("sortByDueSoonest", () => {
+  it("orders scheduled tasks soonest-due first, as-needed last", () => {
+    const later = task({ status: "ok", dueAt: "2026-06-20" });
+    const overdue = task({ status: "overdue", dueAt: "2026-06-01" });
+    const asNeeded = task({ type: "as_needed", status: "adhoc" });
+    const soon = task({ status: "due", dueAt: "2026-06-12" });
+    const result = sortByDueSoonest([later, asNeeded, overdue, soon]);
+    expect(result).toEqual([overdue, soon, later, asNeeded]);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [
+      task({ status: "ok", dueAt: "2026-06-20" }),
+      task({ status: "overdue", dueAt: "2026-06-01" }),
+    ];
+    const snapshot = [...input];
+    sortByDueSoonest(input);
+    expect(input).toEqual(snapshot);
   });
 });
 

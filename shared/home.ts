@@ -33,6 +33,11 @@ export function selectUpcoming(tasks: TaskWithStatus[]): TaskWithStatus[] {
   return [...overdue, ...rest.slice(0, fill)];
 }
 
+/** A kind list ordered soonest-due first; as-needed tasks (no due date) sink last. */
+export function sortByDueSoonest(tasks: TaskWithStatus[]): TaskWithStatus[] {
+  return [...tasks].sort(byDueAt);
+}
+
 /** The home "As needed" list: the three as-needed tasks done longest ago. */
 export function selectAsNeeded(tasks: TaskWithStatus[]): TaskWithStatus[] {
   return tasks

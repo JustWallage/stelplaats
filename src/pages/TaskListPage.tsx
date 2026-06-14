@@ -3,6 +3,7 @@ import {
   taskWithStatusSchema,
   type TaskKind,
 } from "@shared/api";
+import { sortByDueSoonest } from "@shared/home";
 import { useState } from "react";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskForm } from "@/components/TaskForm";
@@ -81,7 +82,9 @@ export function TaskListPage({ kind }: { kind: TaskKind }) {
     return <p className="text-destructive">Could not load tasks.</p>;
   }
 
-  const tasks = data.tasks.filter((task) => task.kind === kind);
+  const tasks = sortByDueSoonest(
+    data.tasks.filter((task) => task.kind === kind),
+  );
 
   return (
     <div className="space-y-4">
