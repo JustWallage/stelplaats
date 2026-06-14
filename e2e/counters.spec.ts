@@ -58,7 +58,7 @@ test("logs a completion at a chosen date", async ({ page, request }) => {
   await page.getByRole("button", { name: "Log it" }).click();
 
   await page.goto(`/tasks/${String(id)}`);
-  await expect(page.getByText(/15 Jan/)).toBeVisible();
+  await expect(page.getByText(/15\/01\/2026/)).toBeVisible();
 });
 
 test("edits a history record's note", async ({ page, request }) => {
@@ -88,7 +88,8 @@ test("deletes a history record and the task becomes due again", async ({
 
   await page.getByRole("button", { name: "Delete record" }).click();
   await expect(page.getByText("Never completed yet.")).toBeVisible();
-  await expect(page.getByText("Due", { exact: true })).toBeVisible();
+  await expect(page.getByText("Due today")).toBeVisible();
+  await expect(page.getByText("Never done")).toBeVisible();
 });
 
 test("adds and deletes a comment", async ({ page, request }) => {

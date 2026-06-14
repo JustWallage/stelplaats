@@ -1,11 +1,11 @@
 import { completionListSchema, taskWithStatusSchema } from "@shared/api";
+import { displayName } from "@shared/users";
 import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { CommentSection } from "@/components/CommentSection";
 import { CompletionModal } from "@/components/CompletionModal";
 import { HistoryCard } from "@/components/HistoryCard";
-import { DueStatusBadge } from "@/components/TaskCard";
 import { TaskForm } from "@/components/TaskForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { useTaskEvents } from "@/context/WebSocketContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { useTasks } from "@/hooks/useTasks";
 import { apiFetch, jsonInit } from "@/lib/api";
+import { dueColor } from "@/lib/dueColor";
+import { formatDueCountdown, formatRelative } from "@/lib/format";
 import { taskTypeLabel } from "@/lib/taskType";
 
 export function TaskDetailPage() {
@@ -57,6 +59,11 @@ export function TaskDetailPage() {
   };
 
   const completions = history.data?.completions ?? [];
+  const color = dueColor(task);
+  const lastDone =
+    task.lastCompletion === null
+      ? "Never done"
+      : `Last done ${formatRelative(task.lastCompletion.doneAt)} by ${displayName(task.lastCompletion.doneBy)}`;
 
   return (
     <div className="space-y-6">
@@ -84,9 +91,13 @@ export function TaskDetailPage() {
         {task.description !== null && (
           <p className="mt-2 whitespace-pre-wrap text-sm">{task.description}</p>
         )}
-        <div className="mt-2">
-          <DueStatusBadge task={task} />
-        </div>
+        <p
+          className="mt-3 text-2xl font-bold leading-tight"
+          style={color !== null ? { color } : undefined}
+        >
+          {formatDueCountdown(task.due.status, task.due.dueAt)}
+        </p>
+        <p className="text-sm text-muted-foreground">{lastDone}</p>
       </div>
 
       <Button

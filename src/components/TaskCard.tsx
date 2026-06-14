@@ -1,40 +1,14 @@
-import { type DueStatus, type TaskWithStatus } from "@shared/api";
+import { type TaskWithStatus } from "@shared/api";
 import { displayName } from "@shared/users";
 import { Check } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { CompletionModal } from "@/components/CompletionModal";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { dueColor } from "@/lib/dueColor";
-import { formatRelative } from "@/lib/format";
+import { formatDueCountdown, formatRelative } from "@/lib/format";
 import { taskTypeLabel } from "@/lib/taskType";
-
-const dueBadge: Record<
-  DueStatus,
-  {
-    label: string;
-    variant: "destructive" | "default" | "secondary" | "outline";
-  }
-> = {
-  overdue: { label: "Overdue", variant: "destructive" },
-  due: { label: "Due", variant: "default" },
-  ok: { label: "OK", variant: "secondary" },
-  adhoc: { label: "As needed", variant: "outline" },
-};
-
-export function DueStatusBadge({ task }: { task: TaskWithStatus }) {
-  const badge = dueBadge[task.due.status];
-  return (
-    <Badge variant={badge.variant}>
-      {badge.label}
-      {task.due.status === "ok" && task.due.dueAt !== null
-        ? ` · next ${task.due.dueAt}`
-        : ""}
-    </Badge>
-  );
-}
 
 export function TaskCard({
   task,
@@ -45,6 +19,7 @@ export function TaskCard({
 }) {
   const [open, setOpen] = useState(false);
   const color = dueColor(task);
+  const countdown = formatDueCountdown(task.due.status, task.due.dueAt);
 
   const subtitle = [
     task.location,
@@ -63,12 +38,15 @@ export function TaskCard({
     >
       <CardContent className="flex items-center justify-between gap-3 p-4">
         <Link to={`/tasks/${String(task.id)}`} className="min-w-0 flex-1">
+          <div
+            className="truncate text-lg font-semibold leading-tight"
+            style={color !== null ? { color } : undefined}
+          >
+            {countdown}
+          </div>
           <div className="truncate font-medium">{task.title}</div>
           <div className="truncate text-sm text-muted-foreground">
             {subtitle}
-          </div>
-          <div className="mt-1">
-            <DueStatusBadge task={task} />
           </div>
         </Link>
         <Button

@@ -27,6 +27,11 @@ export interface DueInput {
   dueDate: Date | null;
 }
 
+/** Whole UTC calendar days from `now` until `dueAt`; negative once overdue. */
+export function daysUntilDue(dueAt: string, now: Date): number {
+  return utcDayNumber(new Date(dueAt)) - utcDayNumber(now);
+}
+
 /**
  * Due state uses UTC calendar days, not 24h windows: a 1-day-interval task
  * completed at 23:59 is due again the next calendar day.
@@ -75,16 +80,16 @@ export function dueColorHue(
     type === "scheduled" && intervalDays !== null
       ? intervalDays
       : ONE_OFF_RAMP_DAYS;
-  const daysUntilDue = utcDayNumber(new Date(dueAt)) - utcDayNumber(now);
-  if (daysUntilDue <= 0) {
+  const daysUntil = daysUntilDue(dueAt, now);
+  if (daysUntil <= 0) {
     return 0;
   }
-  if (daysUntilDue >= ramp) {
+  if (daysUntil >= ramp) {
     return 120;
   }
-  if (daysUntilDue >= 2) {
-    const t = (daysUntilDue - 2) / Math.max(ramp - 2, 1);
+  if (daysUntil >= 2) {
+    const t = (daysUntil - 2) / Math.max(ramp - 2, 1);
     return 30 + t * 90;
   }
-  return (daysUntilDue / 2) * 30;
+  return (daysUntil / 2) * 30;
 }
