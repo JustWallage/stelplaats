@@ -6,12 +6,14 @@ import { CommentSection } from "@/components/CommentSection";
 import { CompletionModal } from "@/components/CompletionModal";
 import { HistoryCard } from "@/components/HistoryCard";
 import { DueStatusBadge } from "@/components/TaskCard";
+import { TaskForm } from "@/components/TaskForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTaskEvents } from "@/context/WebSocketContext";
 import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { useTasks } from "@/hooks/useTasks";
 import { apiFetch, jsonInit } from "@/lib/api";
+import { taskTypeLabel } from "@/lib/taskType";
 
 export function TaskDetailPage() {
   const params = useParams();
@@ -70,14 +72,12 @@ export function TaskDetailPage() {
       </Button>
 
       <div>
-        <h1 className="text-2xl font-bold">{task.title}</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold">{task.title}</h1>
+          <TaskForm kind={task.kind} task={task} onSaved={refresh} />
+        </div>
         <p className="text-muted-foreground">
-          {[
-            task.location,
-            task.intervalDays !== null
-              ? `every ${String(task.intervalDays)} days`
-              : "ad-hoc",
-          ]
+          {[task.location, taskTypeLabel(task)]
             .filter((part) => part !== null && part !== "")
             .join(" · ")}
         </p>
@@ -100,9 +100,15 @@ export function TaskDetailPage() {
       <CompletionModal
         taskId={task.id}
         title={task.title}
+        archivesOnComplete={task.type === "one_off"}
         open={logging}
         onOpenChange={setLogging}
-        onDone={refresh}
+        onDone={() => {
+          refresh();
+          if (task.type === "one_off") {
+            void navigate(`/${task.kind}`);
+          }
+        }}
       />
 
       <Card>

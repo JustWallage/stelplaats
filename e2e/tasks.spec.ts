@@ -7,8 +7,9 @@ test("create, complete via modal, inspect history, archive", async ({
 
   // Create (location left empty — it is optional now)
   await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Scheduled" }).click();
   await page.getByLabel("Title").fill("Mop kitchen floor");
-  await page.getByLabel(/Repeat every/).fill("7");
+  await page.getByLabel("Days in between").fill("7");
   await page.getByRole("button", { name: "Create" }).click();
 
   const card = page.getByText("Mop kitchen floor", { exact: true });
@@ -41,6 +42,53 @@ test("create, complete via modal, inspect history, archive", async ({
   await expect(page.getByText("Mop kitchen floor")).toBeHidden();
 });
 
+test("the create dialog requires choosing a type", async ({ page }) => {
+  await page.goto("/house");
+  await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByLabel("Title").fill("Pick a type first");
+  await expect(page.getByRole("button", { name: "Create" })).toBeDisabled();
+  await page.getByRole("button", { name: "One-off" }).click();
+  await expect(page.getByRole("button", { name: "Create" })).toBeEnabled();
+});
+
+test("a one-off is archived once it is completed", async ({ page }) => {
+  await page.goto("/house");
+  await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "One-off" }).click();
+  await page.getByLabel("Title").fill("Hang the mirror");
+  await page.getByRole("button", { name: "Create" }).click();
+
+  const card = page.getByText("Hang the mirror", { exact: true });
+  await expect(card).toBeVisible();
+
+  await page.getByRole("button", { name: "Complete Hang the mirror" }).click();
+  await expect(page.getByText(/completing it will archive/i)).toBeVisible();
+  await page.getByRole("button", { name: "Log it" }).click();
+  await expect(card).toBeHidden();
+
+  await page.getByRole("button", { name: /archived/i }).click();
+  await expect(page.getByText("Hang the mirror")).toBeVisible();
+});
+
+test("editing a task can change its type", async ({ page }) => {
+  await page.goto("/cleaning");
+  await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Scheduled" }).click();
+  await page.getByLabel("Title").fill("Clean windows");
+  await page.getByLabel("Days in between").fill("30");
+  await page.getByRole("button", { name: "Create" }).click();
+
+  const card = page.getByText("Clean windows", { exact: true });
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(page.getByText("every 30 days")).toBeVisible();
+
+  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("button", { name: "One-off" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("one-off", { exact: true })).toBeVisible();
+});
+
 test("dashboard shows upcoming tasks and reflects completion", async ({
   page,
   request,
@@ -49,6 +97,7 @@ test("dashboard shows upcoming tasks and reflects completion", async ({
     data: {
       title: "Water ficus",
       kind: "plants",
+      type: "scheduled",
       location: "Office",
       description: null,
       intervalDays: 3,
@@ -71,8 +120,10 @@ test("dashboard shows upcoming tasks and reflects completion", async ({
 test("validation errors surface in the create dialog", async ({ page }) => {
   await page.goto("/plants");
   await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Scheduled" }).click();
   // 250 chars passes browser-side constraints but fails the zod max(200).
   await page.getByLabel("Title").fill("x".repeat(250));
+  await page.getByLabel("Days in between").fill("7");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByText(/Could not create the task/)).toBeVisible();
 });

@@ -87,7 +87,7 @@ export function TaskListPage({ kind }: { kind: TaskKind }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{titles[kind]}</h1>
-        <TaskForm kind={kind} onCreated={mutate} />
+        <TaskForm kind={kind} onSaved={mutate} />
       </div>
       {tasks.length === 0 ? (
         <p className="text-muted-foreground">

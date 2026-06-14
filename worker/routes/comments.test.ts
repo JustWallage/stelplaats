@@ -22,6 +22,7 @@ async function createTaskId(): Promise<number> {
     jsonInit("POST", {
       title: "Water ficus",
       kind: "plants",
+      type: "scheduled",
       location: null,
       description: null,
       intervalDays: 7,

@@ -2,7 +2,7 @@ import type { TaskWithStatus } from "@shared/api";
 import { TaskCard } from "@/components/TaskCard";
 import { useTaskEvents } from "@/context/WebSocketContext";
 import { useTasks } from "@/hooks/useTasks";
-import { selectAdhoc, selectUpcoming } from "@shared/home";
+import { selectAsNeeded, selectUpcoming } from "@shared/home";
 
 function Section({
   title,
@@ -40,19 +40,19 @@ export function Dashboard() {
   }
 
   const upcoming = selectUpcoming(data.tasks);
-  const adhoc = selectAdhoc(data.tasks);
+  const asNeeded = selectAsNeeded(data.tasks);
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Today</h1>
-      {upcoming.length === 0 && adhoc.length === 0 ? (
+      {upcoming.length === 0 && asNeeded.length === 0 ? (
         <p className="text-muted-foreground">
           All caught up — nothing is due. 🎉
         </p>
       ) : (
         <>
           <Section title="Upcoming" tasks={upcoming} onChanged={mutate} />
-          <Section title="Ad-hoc" tasks={adhoc} onChanged={mutate} />
+          <Section title="As needed" tasks={asNeeded} onChanged={mutate} />
         </>
       )}
     </div>

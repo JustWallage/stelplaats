@@ -20,20 +20,21 @@ const jsonInit = (method: string, body: unknown) => ({
 const defaultTask = {
   title: "Vacuum living room",
   kind: "cleaning",
+  type: "scheduled",
   location: "Living room",
   description: null,
   intervalDays: 7,
   lastDoneAt: null,
 };
 
+async function post(body: unknown): Promise<Response> {
+  return app.request("/api/tasks", jsonInit("POST", body), localEnv);
+}
+
 async function createTask(
   overrides: Record<string, unknown> = {},
 ): Promise<TaskWithStatus> {
-  const res = await app.request(
-    "/api/tasks",
-    jsonInit("POST", { ...defaultTask, ...overrides }),
-    localEnv,
-  );
+  const res = await post({ ...defaultTask, ...overrides });
   expect(res.status).toBe(201);
   return taskWithStatusSchema.parse(await res.json());
 }
@@ -45,28 +46,60 @@ async function listTasks(): Promise<TaskWithStatus[]> {
 }
 
 describe("POST /api/tasks", () => {
-  it("creates a task that is due (never completed)", async () => {
+  it("creates a scheduled task that is due (never completed)", async () => {
     const task = await createTask();
-    expect(task.title).toBe("Vacuum living room");
-    expect(task.kind).toBe("cleaning");
+    expect(task.type).toBe("scheduled");
     expect(task.intervalDays).toBe(7);
-    expect(task.archived).toBe(false);
     expect(task.due.status).toBe("due");
     expect(task.lastCompletion).toBeNull();
   });
 
-  it("creates an ad-hoc task without interval", async () => {
-    const task = await createTask({ intervalDays: null });
+  it("creates an as-needed task with no due date", async () => {
+    const res = await post({
+      title: "Tidy the shed",
+      kind: "house",
+      type: "as_needed",
+      location: null,
+      description: null,
+      lastDoneAt: null,
+    });
+    expect(res.status).toBe(201);
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.type).toBe("as_needed");
+    expect(task.intervalDays).toBeNull();
     expect(task.due).toEqual({ status: "adhoc", dueAt: null });
   });
 
-  it("creates a task with a null location and a description", async () => {
-    const task = await createTask({
+  it("creates a one-off with a target date", async () => {
+    const res = await post({
+      title: "Replace smoke alarm battery",
+      kind: "house",
+      type: "one_off",
       location: null,
-      description: "use vinegar",
+      description: null,
+      dueDate: "2099-01-01",
     });
-    expect(task.location).toBeNull();
-    expect(task.description).toBe("use vinegar");
+    expect(res.status).toBe(201);
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.type).toBe("one_off");
+    expect(task.intervalDays).toBeNull();
+    expect(task.dueDate).toBe("2099-01-01");
+    expect(task.due.status).toBe("ok");
+  });
+
+  it("creates a dateless one-off as an outstanding to-do", async () => {
+    const res = await post({
+      title: "Hang the painting",
+      kind: "house",
+      type: "one_off",
+      location: null,
+      description: null,
+      dueDate: null,
+    });
+    expect(res.status).toBe(201);
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.dueDate).toBeNull();
+    expect(task.due).toEqual({ status: "due", dueAt: null });
   });
 
   it("seeds a first completion when lastDoneAt is given", async () => {
@@ -77,12 +110,56 @@ describe("POST /api/tasks", () => {
     expect(task.due.status).toBe("ok");
   });
 
+  it("rejects a missing type", async () => {
+    const res = await post({
+      title: "No type",
+      kind: "cleaning",
+      location: null,
+      description: null,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a scheduled task without an interval", async () => {
+    const res = await post({
+      title: "No interval",
+      kind: "cleaning",
+      type: "scheduled",
+      location: null,
+      description: null,
+      lastDoneAt: null,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a one-off carrying an interval", async () => {
+    const res = await post({
+      title: "Bad one-off",
+      kind: "cleaning",
+      type: "one_off",
+      location: null,
+      description: null,
+      dueDate: null,
+      intervalDays: 7,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an as-needed task carrying a due date", async () => {
+    const res = await post({
+      title: "Bad as-needed",
+      kind: "cleaning",
+      type: "as_needed",
+      location: null,
+      description: null,
+      lastDoneAt: null,
+      dueDate: "2099-01-01",
+    });
+    expect(res.status).toBe(400);
+  });
+
   it("rejects an invalid body", async () => {
-    const res = await app.request(
-      "/api/tasks",
-      jsonInit("POST", { title: "", kind: "nonsense" }),
-      localEnv,
-    );
+    const res = await post({ title: "", kind: "nonsense" });
     expect(res.status).toBe(400);
   });
 
@@ -105,17 +182,79 @@ describe("GET /api/tasks", () => {
 });
 
 describe("PATCH /api/tasks/:id", () => {
-  it("updates the title", async () => {
+  it("edits content", async () => {
     const created = await createTask();
     const res = await app.request(
       `/api/tasks/${created.id}`,
-      jsonInit("PATCH", { title: "Vacuum bedroom" }),
+      jsonInit("PATCH", {
+        type: "scheduled",
+        title: "Vacuum bedroom",
+        kind: "cleaning",
+        location: "Bedroom",
+        description: null,
+        intervalDays: 14,
+      }),
       localEnv,
     );
     expect(res.status).toBe(200);
-    expect(taskWithStatusSchema.parse(await res.json()).title).toBe(
-      "Vacuum bedroom",
+    const task = taskWithStatusSchema.parse(await res.json());
+    expect(task.title).toBe("Vacuum bedroom");
+    expect(task.intervalDays).toBe(14);
+  });
+
+  it("changes the type, clearing the now-incompatible columns", async () => {
+    const created = await createTask({ intervalDays: 7 });
+    const toOneOff = await app.request(
+      `/api/tasks/${created.id}`,
+      jsonInit("PATCH", {
+        type: "one_off",
+        title: created.title,
+        kind: created.kind,
+        location: created.location,
+        description: null,
+        dueDate: "2099-01-01",
+      }),
+      localEnv,
     );
+    expect(toOneOff.status).toBe(200);
+    const oneOff = taskWithStatusSchema.parse(await toOneOff.json());
+    expect(oneOff.type).toBe("one_off");
+    expect(oneOff.intervalDays).toBeNull();
+    expect(oneOff.dueDate).toBe("2099-01-01");
+
+    const toAsNeeded = await app.request(
+      `/api/tasks/${created.id}`,
+      jsonInit("PATCH", {
+        type: "as_needed",
+        title: created.title,
+        kind: created.kind,
+        location: created.location,
+        description: null,
+      }),
+      localEnv,
+    );
+    expect(toAsNeeded.status).toBe(200);
+    const asNeeded = taskWithStatusSchema.parse(await toAsNeeded.json());
+    expect(asNeeded.type).toBe("as_needed");
+    expect(asNeeded.intervalDays).toBeNull();
+    expect(asNeeded.dueDate).toBeNull();
+    expect(asNeeded.due).toEqual({ status: "adhoc", dueAt: null });
+  });
+
+  it("rejects a content edit with a bad type/field combo", async () => {
+    const created = await createTask();
+    const res = await app.request(
+      `/api/tasks/${created.id}`,
+      jsonInit("PATCH", {
+        type: "scheduled",
+        title: created.title,
+        kind: created.kind,
+        location: created.location,
+        description: null,
+      }),
+      localEnv,
+    );
+    expect(res.status).toBe(400);
   });
 
   it("archives a task, hiding it from the list", async () => {
@@ -134,7 +273,7 @@ describe("PATCH /api/tasks/:id", () => {
   it("404s on an unknown id", async () => {
     const res = await app.request(
       "/api/tasks/99999",
-      jsonInit("PATCH", { title: "x" }),
+      jsonInit("PATCH", { archived: true }),
       localEnv,
     );
     expect(res.status).toBe(404);
@@ -152,9 +291,31 @@ describe("POST /api/tasks/:id/complete", () => {
     expect(res.status).toBe(200);
     const task = taskWithStatusSchema.parse(await res.json());
     expect(task.due.status).toBe("ok");
-    expect(task.lastCompletion).not.toBeNull();
     expect(task.lastCompletion?.doneBy).toBe("just@wallage.nl");
     expect(task.lastCompletion?.note).toBe("used the new vacuum");
+  });
+
+  it("archives a one-off once it is completed", async () => {
+    const res = await post({
+      title: "Assemble the bookshelf",
+      kind: "house",
+      type: "one_off",
+      location: null,
+      description: null,
+      dueDate: null,
+    });
+    const created = taskWithStatusSchema.parse(await res.json());
+    const completeRes = await app.request(
+      `/api/tasks/${created.id}/complete`,
+      jsonInit("POST", { note: null }),
+      localEnv,
+    );
+    expect(completeRes.status).toBe(200);
+    expect(taskWithStatusSchema.parse(await completeRes.json()).archived).toBe(
+      true,
+    );
+    const active = await listTasks();
+    expect(active.map((t) => t.id)).not.toContain(created.id);
   });
 
   it("appears as lastCompletion in the list", async () => {

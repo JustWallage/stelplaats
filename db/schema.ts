@@ -4,9 +4,13 @@ export const tasks = sqliteTable("tasks", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   kind: text("kind", { enum: ["cleaning", "plants", "house"] }).notNull(),
+  type: text("type", {
+    enum: ["scheduled", "as_needed", "one_off"],
+  }).notNull(),
   location: text("location").notNull(),
   description: text("description"),
   intervalDays: integer("interval_days"),
+  dueDate: integer("due_date", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   archivedAt: integer("archived_at", { mode: "timestamp" }),
 });

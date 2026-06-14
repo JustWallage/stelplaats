@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { dueColor } from "@/lib/dueColor";
 import { formatRelative } from "@/lib/format";
+import { taskTypeLabel } from "@/lib/taskType";
 
 const dueBadge: Record<
   DueStatus,
@@ -20,7 +21,7 @@ const dueBadge: Record<
   overdue: { label: "Overdue", variant: "destructive" },
   due: { label: "Due", variant: "default" },
   ok: { label: "OK", variant: "secondary" },
-  adhoc: { label: "Ad-hoc", variant: "outline" },
+  adhoc: { label: "As needed", variant: "outline" },
 };
 
 export function DueStatusBadge({ task }: { task: TaskWithStatus }) {
@@ -47,6 +48,7 @@ export function TaskCard({
 
   const subtitle = [
     task.location,
+    taskTypeLabel(task),
     task.lastCompletion === null
       ? "never done"
       : `${displayName(task.lastCompletion.doneBy)} · ${formatRelative(task.lastCompletion.doneAt)}`,
@@ -82,6 +84,7 @@ export function TaskCard({
       <CompletionModal
         taskId={task.id}
         title={task.title}
+        archivesOnComplete={task.type === "one_off"}
         open={open}
         onOpenChange={setOpen}
         onDone={onChanged}
