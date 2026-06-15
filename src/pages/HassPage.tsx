@@ -4,8 +4,8 @@ const HASS_URL = "https://hass.justwallage.nl";
 
 export function HassPage() {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+    <div className="flex h-dvh flex-col pb-14 lg:pb-0">
+      <div className="flex items-center justify-between px-4 py-3">
         <h1 className="text-xl font-semibold text-foreground">
           Home Assistant
         </h1>
@@ -21,7 +21,7 @@ export function HassPage() {
       <iframe
         title="Home Assistant"
         src={HASS_URL}
-        className="h-[calc(100dvh-9rem)] w-full rounded-lg border lg:h-[calc(100dvh-5rem)]"
+        className="min-h-0 w-full flex-1 border-t"
       />
     </div>
   );
