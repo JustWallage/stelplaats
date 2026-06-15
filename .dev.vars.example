@@ -1,3 +1,10 @@
 # Copy to .dev.vars (gitignored). Loaded by wrangler/vite-plugin for local dev.
 DEV_USER_EMAIL=just@wallage.nl
 TEST_AUTH_TOKEN=local-test-token
+
+# Home Assistant (only needed to exercise the Lights controls locally).
+# HASS_TOKEN: a long-lived access token from your HASS profile.
+# HASS_ACCESS_*: the hass-api Access service token (terraform output).
+HASS_TOKEN=replace-with-hass-long-lived-token
+HASS_ACCESS_CLIENT_ID=replace-with-access-service-token-client-id
+HASS_ACCESS_CLIENT_SECRET=replace-with-access-service-token-client-secret

@@ -106,3 +106,13 @@ jobs:
 
       - name: Deploy
         run: pnpm exec wrangler deploy -c dist/stelplaats/wrangler.json
+
+      - name: Sync Home Assistant secrets
+        env:
+          HASS_TOKEN: ${{ secrets.HASS_TOKEN }}
+          HASS_ACCESS_CLIENT_ID: ${{ secrets.HASS_ACCESS_CLIENT_ID }}
+          HASS_ACCESS_CLIENT_SECRET: ${{ secrets.HASS_ACCESS_CLIENT_SECRET }}
+        run: |
+          printf '%s' "$HASS_TOKEN" | pnpm exec wrangler secret put HASS_TOKEN --env production
+          printf '%s' "$HASS_ACCESS_CLIENT_ID" | pnpm exec wrangler secret put HASS_ACCESS_CLIENT_ID --env production
+          printf '%s' "$HASS_ACCESS_CLIENT_SECRET" | pnpm exec wrangler secret put HASS_ACCESS_CLIENT_SECRET --env production

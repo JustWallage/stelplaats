@@ -4,6 +4,7 @@ import { ColumnLayout, Layout } from "@/components/Layout";
 import { WebSocketProvider } from "@/context/WebSocketContext";
 import { Dashboard } from "@/pages/Dashboard";
 import { HassPage } from "@/pages/HassPage";
+import { LightsPage } from "@/pages/LightsPage";
 import { TaskDetailPage } from "@/pages/TaskDetailPage";
 import { TaskListPage } from "@/pages/TaskListPage";
 
@@ -23,6 +24,7 @@ export function App() {
                 <Route path="plants" element={<TaskListPage kind="plants" />} />
                 <Route path="house" element={<TaskListPage kind="house" />} />
                 <Route path="tasks/:id" element={<TaskDetailPage />} />
+                <Route path="lights" element={<LightsPage />} />
               </Route>
               <Route path="hass" element={<HassPage />} />
             </Route>
