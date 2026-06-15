@@ -26,13 +26,13 @@ variable "google_client_secret" {
 }
 
 variable "custom_domain" {
-  description = "Custom domain (stelplaats.just.wallage.nl) — leave null until the wallage.nl zone is on Cloudflare (docs/DOMAIN-MIGRATION.md)"
+  description = "App hostname on the justwallage.nl zone (docs/DOMAIN-MIGRATION.md)"
   type        = string
-  default     = null
+  default     = "stelplaats.justwallage.nl"
 }
 
 variable "custom_domain_zone_id" {
-  description = "Cloudflare zone id for wallage.nl — only needed once custom_domain is set"
+  description = "Cloudflare zone id for justwallage.nl. Until this is set the custom domain, Access apps and Home Assistant resources stay inactive (the app keeps running on workers.dev)."
   type        = string
   default     = null
 }

@@ -52,7 +52,7 @@ export function Layout() {
         </div>
       </aside>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-24 pt-6 lg:pb-8">
+      <main className="min-w-0 flex-1">
         <Outlet />
       </main>
 
@@ -60,6 +60,14 @@ export function Layout() {
       <nav className="fixed inset-x-0 bottom-0 flex items-stretch justify-around border-t bg-background/95 backdrop-blur lg:hidden">
         <NavItems orientation="bottom" />
       </nav>
+    </div>
+  );
+}
+
+export function ColumnLayout() {
+  return (
+    <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-6 lg:pb-8">
+      <Outlet />
     </div>
   );
 }

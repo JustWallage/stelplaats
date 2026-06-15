@@ -1,38 +1,57 @@
-# Domain migration — stelplaats.just.wallage.nl (deferred)
+# Custom domain — justwallage.nl
 
-## Why deferred
+## What changed
 
-Workers custom domains require the zone to live in the Cloudflare account.
-`just.wallage.nl` is a Route53 hosted zone (repo `../just-wallage-nl`), and
-Cloudflare subdomain zones are Enterprise-only — so the whole registrable
-domain `wallage.nl` must move. Until then production runs on
-`stelplaats.<account>.workers.dev` (still behind Cloudflare Access).
+The original plan moved production to `stelplaats.just.wallage.nl`, which was
+blocked because `just.wallage.nl` is a subdomain zone (Enterprise-only) of
+dad's `wallage.nl`. That dependency is **gone**: a dedicated domain
+`justwallage.nl` was registered (Vimexx) and its zone now lives in Cloudflare
+(free plan). Production moves to **`stelplaats.justwallage.nl`**, and Home
+Assistant is embedded from **`hass.justwallage.nl`** on the same zone (see
+`docs/superpowers/specs/2026-06-14-hass-embed-design.md`).
 
-## Migration steps
+## Hostnames on the zone
 
-1. **Add the zone**: Cloudflare dashboard → Add site → `wallage.nl` (Free plan).
-   Cloudflare imports most DNS records automatically — verify against the
-   current authoritative records and add anything missed (MX, TXT/SPF/DKIM,
-   the NS delegation for `just.wallage.nl` becomes obsolete, and the existing
-   `finance`/`iglympics`/`contexts` CNAMEs to `*.pages.dev` must exist as
-   proxied records).
-2. **Switch nameservers**: dad updates the `wallage.nl` nameservers at the
-   registrar to the two assigned Cloudflare nameservers. Wait for activation
-   (the zone shows Active; DNS propagation up to 24h).
-3. **Verify the sibling apps**: finance.just.wallage.nl and
-   iglympics.just.wallage.nl must still resolve and serve (Pages custom
-   domains re-validate automatically on Cloudflare DNS).
-4. **Flip Terraform**: set in the deploy pipeline / tfvars:
-   - `custom_domain = "stelplaats.just.wallage.nl"`
-   - `custom_domain_zone_id = <wallage.nl zone id>`
-     Apply. This creates the Workers custom domain (DNS + cert are managed by
-     Cloudflare) and moves the Access application to the new hostname.
-5. **Retire `../just-wallage-nl`**: the Route53 zone is no longer
-   authoritative. Archive the repo (or convert it to manage the Cloudflare
-   zone records with the Cloudflare provider, which is recommended so DNS
-   stays in code).
+| Host                        | Serves                          | Auth                        |
+| --------------------------- | ------------------------------- | --------------------------- |
+| `stelplaats.justwallage.nl` | the app (Workers custom domain) | Access (Google, 2 emails)   |
+| `hass.justwallage.nl`       | Home Assistant (iframed)        | Access (Google, 2 emails)   |
+| `hass-api.justwallage.nl`   | Home Assistant (Worker → API)   | Access (service token only) |
+
+`hass`/`hass-api` are the same Cloudflare Tunnel on the Pi; the app's hostname
+is a Workers custom domain. All share the `justwallage.nl` registrable domain,
+so the Access cookie is same-site and one Google login covers the app + iframe.
+
+## Activation switch
+
+Everything on the custom domain is gated in Terraform on
+`local.custom_domain_active` (`var.custom_domain != null && var.custom_domain_zone_id != null`).
+`custom_domain` defaults to `stelplaats.justwallage.nl`; the only thing missing
+is the **zone id**, supplied as the GitHub Actions secret
+**`CUSTOM_DOMAIN_ZONE_ID`** (wired in `deploy.yml` as `TF_VAR_custom_domain_zone_id`).
+
+Until that secret is set the app keeps running on `*.workers.dev` and none of
+the custom-domain / Access / Home Assistant resources are created — so this
+branch can merge safely before the cutover.
+
+## Cutover steps
+
+1. **Get the zone id**: Cloudflare dashboard → `justwallage.nl` → Overview →
+   right sidebar → **Zone ID**.
+2. **Add the GHA secret**: `gh secret set CUSTOM_DOMAIN_ZONE_ID` (or via the
+   repo settings UI).
+3. **Set up the Cloudflare Tunnel on the Pi** so `hass` / `hass-api` resolve
+   (Cloudflared add-on; both public hostnames → `http://homeassistant:8123`).
+4. **Deploy** (push to `main`): `terraform apply` creates the Workers custom
+   domain, the three Access apps, the service token, and the iframe header rule;
+   the app moves to `stelplaats.justwallage.nl`.
+5. **Worker → HASS secrets** (phase 2): fetch the service-token creds
+   (`terraform -chdir=iac output -raw hass_api_access_client_id` /
+   `…_client_secret`) and set them, plus the HASS long-lived token, as Worker
+   secrets.
 
 ## Rollback
 
-Set `custom_domain` back to `null` and apply: the app and Access revert to the
-workers.dev hostname. Nameserver rollback at the registrar restores Route53.
+Remove the `CUSTOM_DOMAIN_ZONE_ID` secret (or set it empty) and apply: the
+custom domain, Access apps, and Home Assistant resources are destroyed and the
+app reverts to the workers.dev hostname.

@@ -19,6 +19,7 @@ jobs:
       TF_VAR_workers_dev_subdomain: ${{ secrets.WORKERS_DEV_SUBDOMAIN }}
       TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
       TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      TF_VAR_custom_domain_zone_id: ${{ secrets.CUSTOM_DOMAIN_ZONE_ID }}
     outputs:
       d1_database_id_prod: ${{ steps.tf_outputs.outputs.d1_database_id_prod }}
     steps:
