@@ -113,6 +113,13 @@ jobs:
           HASS_ACCESS_CLIENT_ID: ${{ secrets.HASS_ACCESS_CLIENT_ID }}
           HASS_ACCESS_CLIENT_SECRET: ${{ secrets.HASS_ACCESS_CLIENT_SECRET }}
         run: |
-          printf '%s' "$HASS_TOKEN" | pnpm exec wrangler secret put HASS_TOKEN --env production
-          printf '%s' "$HASS_ACCESS_CLIENT_ID" | pnpm exec wrangler secret put HASS_ACCESS_CLIENT_ID --env production
-          printf '%s' "$HASS_ACCESS_CLIENT_SECRET" | pnpm exec wrangler secret put HASS_ACCESS_CLIENT_SECRET --env production
+          put() {
+            if [ -n "$2" ]; then
+              printf '%s' "$2" | pnpm exec wrangler secret put "$1" --env production
+            else
+              echo "skip $1 (GitHub secret not set)"
+            fi
+          }
+          put HASS_TOKEN "$HASS_TOKEN"
+          put HASS_ACCESS_CLIENT_ID "$HASS_ACCESS_CLIENT_ID"
+          put HASS_ACCESS_CLIENT_SECRET "$HASS_ACCESS_CLIENT_SECRET"
