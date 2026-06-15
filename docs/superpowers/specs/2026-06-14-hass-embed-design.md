@@ -198,10 +198,51 @@ zone id>`. The gated `cloudflare_workers_custom_domain.stelplaats` and the
   the element, not HASS itself.
 - Keep `pnpm check` green.
 
+## Phase 2 — native controls (design)
+
+Phase 1 embeds the dashboard. Phase 2 adds first-class buttons/toggles in the
+app for chosen actions. **All logic lives in HASS** (scripts / scenes /
+automations); the app + Worker are a thin trigger + status layer. The contract
+between them is just entity_ids — a routine can change in HASS with no app
+redeploy. The Worker can't reach devices except through HASS, so no
+orchestration logic belongs in Cloudflare.
+
+**Modeling.** Momentary "do it now" actions → HASS **scripts** → app **button**.
+On/off behaviour (enable/disable a routine) → **automation entity** → app
+**toggle** + state read. "Turn off all lights" is a single `light.turn_off`
+action wrapped as `script.all_lights_off` — not an automation (no trigger).
+
+**First control:** "Turn off all lights" → `script.all_lights_off` → one button.
+
+**Machine-API path (decided).** A **second tunnel hostname
+`hass-api.justwallage.nl`** whose Access policy allows **only a service token**
+(not interactive Google) — keeping the human iframe path and the machine API
+path cleanly separated. The Worker calls it server-side with two secrets, never
+exposed to the browser:
+
+- HASS **long-lived access token** (Bearer).
+- CF Access **service token** (`CF-Access-Client-Id` / `CF-Access-Client-Secret`)
+  to pass the edge.
+
+**Worker proxy.** New routes, each with a Zod schema in `shared/` (per SPEC §6),
+e.g. `POST /api/hass/script/:id`, later `POST /api/hass/automation/:id/toggle`
+and `GET /api/hass/states`. The Worker forwards to
+`https://hass-api.justwallage.nl/api/services/...` with the two creds. Reuses the
+existing 2-email Access gate on the app side; HASS creds stay server-side.
+
+**App UI.** A controls section on the Hass page (or a small panel) with the
+"All lights off" button calling `POST /api/hass/script/all_lights_off`. Buttons
+for scripts/scenes; toggles for automations (read state to reflect status).
+Live status can reuse the existing `mutate()` + WS pattern or fetch-on-demand;
+HASS's own WS API is a later option.
+
+**HASS-side prep (doable now, no domain):** create `script.all_lights_off`;
+create a long-lived access token (kept as a Worker secret later — never pasted
+into chat). **Worker/Terraform/app wiring is gated on the tunnel being up.**
+
 ## Out of scope (later phases)
 
-- Native React controls over the HASS REST/WebSocket API (the "and maybe native
-  controls" phase).
+- Automation toggles and scene buttons beyond the first "all lights off" control.
 - PWA install.
 - `trusted_networks` true-single-login (decision D2).
 
@@ -212,3 +253,5 @@ zone id>`. The gated `cloudflare_workers_custom_domain.stelplaats` and the
 - **D2 — HASS own login.** v1 keeps it (simple, persists). Optional later:
   `trusted_networks` auto-login for a true single sign-in — fiddlier behind the
   add-on reverse proxy. Confirm: keep for v1?
+- ~~**D3 — machine-API auth topology.**~~ Resolved: separate
+  `hass-api.justwallage.nl` with a service-token-only Access policy.
