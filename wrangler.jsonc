@@ -11,6 +11,7 @@
   "vars": {
     "ENVIRONMENT": "local",
     "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
+    "HASS_API_URL": "https://hass-api.justwallage.nl",
   },
   "d1_databases": [
     {
@@ -31,6 +32,7 @@
       "vars": {
         "ENVIRONMENT": "e2e",
         "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
+        "HASS_API_URL": "https://hass-api.justwallage.nl",
       },
       "d1_databases": [
         {
@@ -50,6 +52,7 @@
       "vars": {
         "ENVIRONMENT": "production",
         "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
+        "HASS_API_URL": "https://hass-api.justwallage.nl",
       },
       "d1_databases": [
         {

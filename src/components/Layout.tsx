@@ -1,4 +1,4 @@
-import { Brush, House, Leaf, Wrench, Zap } from "lucide-react";
+import { Brush, House, Leaf, Lightbulb, Wrench, Zap } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 import { useUser } from "@/components/AuthGate";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/cleaning", label: "Cleaning", icon: Brush },
   { to: "/plants", label: "Plants", icon: Leaf },
   { to: "/house", label: "House", icon: Wrench },
+  { to: "/lights", label: "Lights", icon: Lightbulb },
   { to: "/hass", label: "Hass", icon: Zap },
 ];
 
