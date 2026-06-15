@@ -1,8 +1,18 @@
 import { Hono } from "hono";
 import { okSchema } from "../../shared/api";
-import type { AppEnv } from "../env";
 
-export const hassRoutes = new Hono<AppEnv>();
+// HASS_API_URL is a var, but the three credentials are secrets — which are not
+// present in `.dev.vars` on CI, so the generated `Env` omits them there.
+// Declare the bindings this route needs explicitly (mirrors middleware/auth.ts)
+// rather than relying on `Env`.
+interface HassBindings {
+  HASS_API_URL: string;
+  HASS_TOKEN: string;
+  HASS_ACCESS_CLIENT_ID: string;
+  HASS_ACCESS_CLIENT_SECRET: string;
+}
+
+export const hassRoutes = new Hono<{ Bindings: HassBindings }>();
 
 // Run a Home Assistant script by object id ("all_lights_off" -> script.all_lights_off).
 // The Worker calls HASS server-side via the Access-protected hass-api hostname,
