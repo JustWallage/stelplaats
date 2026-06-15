@@ -8,16 +8,11 @@ test("nav routes to the Home Assistant page", async ({ page }) => {
   await expect(page).toHaveURL(/\/hass$/);
 });
 
-test("embeds the Home Assistant dashboard with a direct-open fallback", async ({
-  page,
-}) => {
+test("embeds the Home Assistant dashboard", async ({ page }) => {
   await page.goto("/hass");
 
   await expect(page.locator('iframe[title="Home Assistant"]')).toHaveAttribute(
     "src",
     HASS_URL,
   );
-  await expect(
-    page.getByRole("link", { name: /open directly/i }),
-  ).toHaveAttribute("href", HASS_URL);
 });
