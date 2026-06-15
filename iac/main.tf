@@ -28,8 +28,16 @@ provider "cloudflare" {
   api_token = var.cloudflare_api_token
 }
 
+# Everything on the custom domain (the app's Workers domain, all Access apps,
+# the Home Assistant tunnel hostnames and header rule) activates together, and
+# only once the justwallage.nl zone id is supplied. Until then the app keeps
+# running on workers.dev and nothing here flips.
 locals {
-  app_hostname = coalesce(var.custom_domain, "stelplaats.${var.workers_dev_subdomain}")
+  custom_domain_active = var.custom_domain != null && var.custom_domain_zone_id != null
+  app_hostname         = local.custom_domain_active ? var.custom_domain : "stelplaats.${var.workers_dev_subdomain}"
+
+  hass_hostname     = "hass.justwallage.nl"
+  hass_api_hostname = "hass-api.justwallage.nl"
 }
 
 resource "cloudflare_d1_database" "prod" {
@@ -53,16 +61,16 @@ resource "cloudflare_zero_trust_access_identity_provider" "google" {
   }
 }
 
-# Gated on custom_domain: self_hosted apps require a domain in a zone you own,
-# so a workers.dev hostname is rejected with "domain does not belong to zone".
+# Self_hosted apps require a domain in a zone you own, so a workers.dev hostname
+# is rejected with "domain does not belong to zone" — hence gated on the zone id.
 resource "cloudflare_zero_trust_access_application" "stelplaats" {
-  count = var.custom_domain == null ? 0 : 1
+  count = local.custom_domain_active ? 1 : 0
 
   account_id                = var.cloudflare_account_id
   name                      = "stelplaats"
   domain                    = var.custom_domain
   type                      = "self_hosted"
-  session_duration          = "168h"
+  session_duration          = "730h"
   auto_redirect_to_identity = true
   app_launcher_visible      = true
   allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
@@ -77,9 +85,86 @@ resource "cloudflare_zero_trust_access_application" "stelplaats" {
   }]
 }
 
-# --- Custom domain (activated after the DNS move; null until then) ---
+# Home Assistant dashboard (iframed). Same Google policy as the app, so SSO
+# admits the frame silently — one login covers both (same-site cookie).
+resource "cloudflare_zero_trust_access_application" "hass" {
+  count = local.custom_domain_active ? 1 : 0
+
+  account_id                = var.cloudflare_account_id
+  name                      = "stelplaats-hass"
+  domain                    = local.hass_hostname
+  type                      = "self_hosted"
+  session_duration          = "730h"
+  auto_redirect_to_identity = true
+  allowed_idps              = [cloudflare_zero_trust_access_identity_provider.google.id]
+
+  policies = [{
+    name     = "Allow household only"
+    decision = "allow"
+    include = [
+      { email = { email = "just@wallage.nl" } },
+      { email = { email = "suusraedts2018@gmail.com" } },
+    ]
+  }]
+}
+
+# Machine API path: the Worker calls Home Assistant server-side via this
+# hostname, authenticating with the service token below (no interactive login).
+resource "cloudflare_zero_trust_access_service_token" "hass_api" {
+  count = local.custom_domain_active ? 1 : 0
+
+  account_id = var.cloudflare_account_id
+  name       = "stelplaats-hass-api"
+}
+
+resource "cloudflare_zero_trust_access_application" "hass_api" {
+  count = local.custom_domain_active ? 1 : 0
+
+  account_id       = var.cloudflare_account_id
+  name             = "stelplaats-hass-api"
+  domain           = local.hass_api_hostname
+  type             = "self_hosted"
+  session_duration = "730h"
+
+  policies = [{
+    name     = "Service token only"
+    decision = "non_identity"
+    include  = [{ service_token = { token_id = cloudflare_zero_trust_access_service_token.hass_api[0].id } }]
+  }]
+}
+
+# Strip X-Frame-Options and set frame-ancestors so the app may iframe Home
+# Assistant (HASS sends X-Frame-Options: SAMEORIGIN by default).
+resource "cloudflare_ruleset" "hass_iframe_headers" {
+  count = local.custom_domain_active ? 1 : 0
+
+  zone_id = var.custom_domain_zone_id
+  name    = "hass-iframe-headers"
+  kind    = "zone"
+  phase   = "http_response_headers_transform"
+
+  rules = [{
+    ref         = "strip_xfo_set_csp"
+    description = "Allow the app to iframe Home Assistant"
+    expression  = "(http.host eq \"${local.hass_hostname}\")"
+    action      = "rewrite"
+    action_parameters = {
+      headers = {
+        "X-Frame-Options" = {
+          operation = "remove"
+        }
+        "Content-Security-Policy" = {
+          operation = "set"
+          value     = "frame-ancestors 'self' https://${var.custom_domain}"
+        }
+      }
+    }
+  }]
+}
+
+# --- Custom domain (activated once the zone id is supplied) ---
 resource "cloudflare_workers_custom_domain" "stelplaats" {
-  count = var.custom_domain == null ? 0 : 1
+  count = local.custom_domain_active ? 1 : 0
 
   account_id = var.cloudflare_account_id
   zone_id    = var.custom_domain_zone_id
