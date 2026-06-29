@@ -1,5 +1,5 @@
 import { e2eHeaders } from "../playwright.config";
-import { expect, test } from "./fixtures";
+import { expect, test, visiblePanel } from "./fixtures";
 
 test("completing a task live-updates another client via WebSocket", async ({
   page,
@@ -25,7 +25,7 @@ test("completing a task live-updates another client via WebSocket", async ({
   });
   const observer = await otherContext.newPage();
   await observer.goto("/");
-  await expect(observer.getByText("Dust shelves")).toBeVisible();
+  await expect(visiblePanel(observer).getByText("Dust shelves")).toBeVisible();
 
   // First client completes the task from the cleaning list (via the modal).
   await page.goto("/cleaning");
@@ -34,7 +34,7 @@ test("completing a task live-updates another client via WebSocket", async ({
 
   // The observer page must update WITHOUT any reload or navigation: the task
   // stays on the dashboard but flips from due to counting down once completed.
-  await expect(observer.getByText("14 days left")).toBeVisible({
+  await expect(visiblePanel(observer).getByText("14 days left")).toBeVisible({
     timeout: 10_000,
   });
 
