@@ -1,6 +1,6 @@
 import { taskWithStatusSchema } from "@shared/api";
 import type { APIRequestContext } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, test, visiblePanel } from "./fixtures";
 
 async function createTask(
   request: APIRequestContext,
@@ -114,7 +114,7 @@ test("seeds a first completion from the last-done date", async ({ page }) => {
   await page.getByLabel("Last done (optional)").fill("2026-06-01");
   await page.getByRole("button", { name: "Create" }).click();
 
-  await page.getByText("Fertilise ferns").click();
+  await visiblePanel(page).getByText("Fertilise ferns").click();
   await expect(
     page.getByRole("heading", { name: "Fertilise ferns" }),
   ).toBeVisible();
@@ -129,13 +129,17 @@ test("archives and restores a task via the archived section", async ({
   await createTask(request, { title: "Wipe the skirting boards" });
 
   await page.goto("/cleaning");
-  await page.getByText("Wipe the skirting boards").click();
+  await visiblePanel(page).getByText("Wipe the skirting boards").click();
   await page.getByRole("button", { name: "Archive task" }).click();
   await expect(page).toHaveURL(/\/cleaning$/);
-  await expect(page.getByText("Wipe the skirting boards")).toBeHidden();
+  await expect(
+    visiblePanel(page).getByText("Wipe the skirting boards"),
+  ).toBeHidden();
 
   await page.getByRole("button", { name: /Show archived/ }).click();
-  await expect(page.getByText("Wipe the skirting boards")).toBeVisible();
+  await expect(
+    visiblePanel(page).getByText("Wipe the skirting boards"),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Unarchive" }).click();
 
   await expect(
@@ -154,7 +158,9 @@ test("creates and lists a house task", async ({ page }) => {
   await page.getByLabel("Days in between").fill("180");
   await page.getByRole("button", { name: "Create" }).click();
 
-  await expect(page.getByText("Replace smoke alarm battery")).toBeVisible();
+  await expect(
+    visiblePanel(page).getByText("Replace smoke alarm battery"),
+  ).toBeVisible();
 });
 
 test("back button returns to the kind list", async ({ page, request }) => {
