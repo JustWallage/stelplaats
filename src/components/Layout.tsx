@@ -7,6 +7,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { useUser } from "@/components/AuthGate";
 import { cn } from "@/lib/utils";
@@ -74,10 +75,18 @@ export function Layout() {
   );
 }
 
-export function ColumnLayout() {
+export function ColumnContainer({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 pb-24 pt-6 lg:pb-8">
-      <Outlet />
+      {children}
     </div>
+  );
+}
+
+export function ColumnLayout() {
+  return (
+    <ColumnContainer>
+      <Outlet />
+    </ColumnContainer>
   );
 }

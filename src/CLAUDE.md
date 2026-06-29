@@ -9,6 +9,15 @@
 - Layout: mobile-first (bottom tab bar) WITH desktop breakpoints (`lg:`
   sidebar). Unlike sibling project iglympics, breakpoints are allowed and
   expected here. Nav items live in `components/Layout.tsx` (`navItems`).
+- Main pages are a horizontal swipe pager: `components/SwipeDeck.tsx` renders
+  Home/Cleaning/Plants/House/Lights/Settings as scroll-snap panels (CSS only, no
+  gesture lib) and is the layout-route element for those six paths, so it stays
+  mounted across them — swiping or tapping a tab just scrolls + `navigate()`s,
+  never reloads. `panels` there is the source of order (must match `navItems`).
+  GOTCHA: every panel stays mounted, so a task shows on BOTH its kind list and
+  the dashboard at once — inactive panels are `inert` (out of the a11y tree, so
+  `getByRole` is unambiguous) but their text is still in the DOM. Hass (iframe,
+  full-bleed) and `tasks/:id` (drill-in) are NOT in the deck — normal routes.
 - `pages/SettingsPage.tsx` (the Settings tab) holds three cards: Install (replays
   the captured `beforeinstallprompt` from `lib/pwa.ts`), Notifications (Web Push
   for THIS device via `lib/push.ts` — reads `/api/push` for the VAPID key,
