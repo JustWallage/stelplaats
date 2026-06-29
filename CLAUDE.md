@@ -44,3 +44,21 @@ docs/      BOOTSTRAP.md (manual setup), DOMAIN-MIGRATION.md (deferred DNS move)
   restate what the code does, or narrate history — the diff and git do that.
 - Keep [README.md](README.md) current for big changes only (new capabilities,
   shifts in architecture or workflow); skip it for small changes it never mentions.
+
+## Docs standard — MUST keep updated
+
+Nested CLAUDE.md per package = AI context. Shared patterns → `docs/claude/`.
+
+Content test — every line must pass: "would AI get this wrong, or need to read code first, without it?"
+
+Keep:
+
+1. Ownership — which package owns what
+2. Invariants code doesn't shout (derived status, lock items, uniqueness)
+3. Cross-package contracts — event names, topics, who consumes whom
+4. Domain language — exact terms + forbidden synonyms
+5. Gotchas — sync drivers, skipped states, idempotency traps
+
+Delete: file listings, API signatures, anything an ls/grep reveals or types imply. These rot, and AI reads code faster than stale prose.
+Brevity: note the invariant + where to grep — don't transcribe enumerations that live in code. Shorter > exhaustive.
+Rule: always update CLAUDE.md (or docs/claude/) in same commit when something from list above was changed. Stale doc worse than none. Reference shared docs by plain path, never `@`-import.
