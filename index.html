@@ -4,7 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stelplaats</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- use-credentials: the site is behind Cloudflare Access, and the manifest
+         is otherwise fetched without cookies → Access bounces it to the login
+         and Chrome sees no manifest (only "Add to Home screen", not "Install"). -->
+    <link
+      rel="manifest"
+      href="/manifest.webmanifest"
+      crossorigin="use-credentials"
+    />
     <meta name="theme-color" content="#b5482f" />
     <link rel="icon" type="image/png" href="/icon-32.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
