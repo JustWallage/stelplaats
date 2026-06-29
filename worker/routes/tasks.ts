@@ -1,4 +1,4 @@
-import { desc, eq, isNotNull, isNull, inArray, max } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { Hono, type Context } from "hono";
 import type { ZodType } from "zod";
 import {
@@ -17,6 +17,7 @@ import type { AppEnv } from "../env";
 import { broadcast } from "../lib/broadcast";
 import { getDb, type Db } from "../lib/db";
 import { toCompletion, toTaskWithStatus } from "../lib/serialize";
+import { loadTasksWithLastCompletion } from "../lib/tasks-query";
 
 export const tasksRoutes = new Hono<AppEnv>();
 
@@ -54,25 +55,11 @@ async function findLastCompletion(
 tasksRoutes.get("/", async (c) => {
   const db = getDb(c.env);
   const archived = c.req.query("archived") === "true";
-  const activeTasks = await db
-    .select()
-    .from(tasks)
-    .where(archived ? isNotNull(tasks.archivedAt) : isNull(tasks.archivedAt));
-  const latestIds = db
-    .select({ id: max(completions.id) })
-    .from(completions)
-    .groupBy(completions.taskId);
-  const latestCompletions = await db
-    .select()
-    .from(completions)
-    .where(inArray(completions.id, latestIds));
-  const latestByTask = new Map(
-    latestCompletions.map((row) => [row.taskId, row]),
-  );
+  const rows = await loadTasksWithLastCompletion(db, archived);
   const now = new Date();
   return c.json({
-    tasks: activeTasks.map((task) =>
-      toTaskWithStatus(task, latestByTask.get(task.id) ?? null, now),
+    tasks: rows.map(({ task, lastCompletion }) =>
+      toTaskWithStatus(task, lastCompletion, now),
     ),
   });
 });

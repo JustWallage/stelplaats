@@ -6,7 +6,7 @@ import {
   taskWithStatusSchema,
   type Comment,
 } from "../../shared/api";
-import app from "../index";
+import { app } from "../index";
 
 const localEnv = { ...env, ENVIRONMENT: "local" };
 

@@ -85,6 +85,28 @@ resource "cloudflare_zero_trust_access_application" "stelplaats" {
   }]
 }
 
+# The Telegram bot webhook must be reachable by Telegram's servers, which carry
+# no Access identity. A path-scoped app with a "bypass" policy punches a public
+# hole at /telegram/webhook only; Access matches the most specific app, so the
+# rest of the domain stays behind "Allow household only". The endpoint is still
+# authenticated by its secret token (X-Telegram-Bot-Api-Secret-Token) in the
+# worker, so bypassing Access does not make it unauthenticated.
+resource "cloudflare_zero_trust_access_application" "telegram_webhook" {
+  count = local.custom_domain_active ? 1 : 0
+
+  account_id       = var.cloudflare_account_id
+  name             = "stelplaats-telegram-webhook"
+  domain           = "${var.custom_domain}/telegram/webhook"
+  type             = "self_hosted"
+  session_duration = "730h"
+
+  policies = [{
+    name     = "Public bypass (secret-token gated in worker)"
+    decision = "bypass"
+    include  = [{ everyone = {} }]
+  }]
+}
+
 # Home Assistant dashboard (iframed). Same Google policy as the app, so SSO
 # admits the frame silently — one login covers both (same-site cookie).
 resource "cloudflare_zero_trust_access_application" "hass" {

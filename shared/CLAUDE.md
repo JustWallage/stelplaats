@@ -5,6 +5,8 @@ boundary. Change the schema here FIRST; both sides follow via `z.infer`.
 
 - `api.ts` — request/response schemas. Worker validates requests and parses
   responses with these; frontend parses fetch results with the same objects.
+  `telegramStatusSchema` (linked + `chatLabel`) and `telegramLinkCodeSchema`
+  (code + `t.me` url + expiry) back the `/api/telegram` connect routes.
 - `ws-events.ts` — discriminated union of ALL realtime events. Adding an event
   type = add it here, broadcast it in the worker route, subscribe in the UI.
 - `due.ts` — due-state computation. UTC calendar days, NOT 24h windows

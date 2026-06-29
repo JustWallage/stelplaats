@@ -6,7 +6,7 @@ import {
   taskWithStatusSchema,
   type TaskWithStatus,
 } from "../../shared/api";
-import app from "../index";
+import { app } from "../index";
 
 // ENVIRONMENT=local → identity is DEV_USER_EMAIL (just@wallage.nl).
 const localEnv = { ...env, ENVIRONMENT: "local" };
@@ -103,7 +103,9 @@ describe("POST /api/tasks", () => {
   });
 
   it("seeds a first completion when lastDoneAt is given", async () => {
-    const lastDoneAt = new Date("2026-06-10T09:00:00Z").toISOString();
+    // Two days ago against a 7-day interval → still well inside the window, so
+    // the task reads "ok". Relative to now so the assertion never goes stale.
+    const lastDoneAt = new Date(Date.now() - 2 * 86_400_000).toISOString();
     const task = await createTask({ intervalDays: 7, lastDoneAt });
     expect(task.lastCompletion).not.toBeNull();
     expect(task.lastCompletion?.doneBy).toBe("just@wallage.nl");

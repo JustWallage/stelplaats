@@ -73,6 +73,46 @@ publicly reachable until you do this**, so do it before putting real data in:
 Once the custom domain lands (next section), Terraform manages the Access
 application end-to-end and this toggle can be removed.
 
+## Telegram bot (optional)
+
+The bot sends a reminder at 07:00 Amsterdam time on the day a task's countdown
+reaches zero. Its two credentials are **GitHub Actions secrets**; the deploy
+pipeline installs them onto the production worker on every deploy (and skips the
+bot when they are unset).
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) (`/newbot`). Copy the
+   HTTP API token and the bot's `@username`.
+2. Put `TELEGRAM_BOT_USERNAME` (without the `@`) into `wrangler.jsonc` →
+   `env.production.vars` so the app can build `t.me` deep links.
+3. Set the two secrets (pick any random string for the webhook secret, e.g.
+   `openssl rand -hex 32`). Either add them to `.bootstrap.env` and re-run
+   `./scripts/bootstrap.sh`, or set them directly:
+
+   ```sh
+   gh secret set TELEGRAM_BOT_TOKEN
+   gh secret set TELEGRAM_WEBHOOK_SECRET
+   ```
+
+   The next push to `main` deploys and installs them onto the worker, and
+   registers the slash-command list from `worker/lib/bot-commands.json`.
+
+4. Register the webhook with Telegram (uses the same secret so the worker can
+   verify each call):
+
+   ```sh
+   curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+     -d url="https://stelplaats.justwallage.nl/telegram/webhook" \
+     -d secret_token="<TELEGRAM_WEBHOOK_SECRET>"
+   ```
+
+   Until the custom domain lands, point `url` at the workers.dev host instead.
+   The `/telegram/webhook` path is exposed past Cloudflare Access by a Terraform
+   "bypass" Access app (it is still gated by the secret token in the worker).
+
+5. Open the app's **Telegram** tab, tap **Generate connect link**, and send the
+   bot `/start <code>` (or open the deep link). The 07:00 reminder cron is
+   already configured in `wrangler.jsonc`.
+
 ## Later: custom domain
 
 The move of `stelplaats.just.wallage.nl` is deliberately deferred —

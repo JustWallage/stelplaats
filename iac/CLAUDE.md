@@ -6,6 +6,11 @@ hostnames' Access apps + service token + iframe header rule. Wrangler/CI own:
 the worker itself, its secrets, migrations, and all ephemeral e2e resources —
 never add those to Terraform.
 
+- The `telegram_webhook` Access app is a path-scoped (`/telegram/webhook`)
+  "bypass" policy so Telegram (no Access identity) can reach the webhook; Access
+  applies the most-specific app, so the rest of the domain stays gated. The
+  endpoint is still secret-token authenticated in the worker.
+
 - State: R2 bucket `stelplaats-tfstate` (S3 backend; endpoint passed via
   `-backend-config` at init because backend blocks can't interpolate vars).
 - Local validation only: `pnpm tf:init` (no backend) once, then `pnpm check`

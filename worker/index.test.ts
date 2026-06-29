@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import app from "./index";
+import { app } from "./index";
 
 // Pins the composition-order guarantee: /api/ws must stay exempt from auth
 // (it is registered before the auth middleware), everything else under /api

@@ -8,3 +8,10 @@ TEST_AUTH_TOKEN=local-test-token
 HASS_TOKEN=replace-with-hass-long-lived-token
 HASS_ACCESS_CLIENT_ID=replace-with-access-service-token-client-id
 HASS_ACCESS_CLIENT_SECRET=replace-with-access-service-token-client-secret
+
+# Telegram bot (optional). Without TELEGRAM_BOT_TOKEN the bot client is a no-op
+# fake — the connect flow still works locally, but no message is actually sent.
+# TELEGRAM_WEBHOOK_SECRET gates POST /telegram/webhook; set it to drive the bot
+# webhook locally (any string).
+# TELEGRAM_BOT_TOKEN=replace-with-botfather-token
+# TELEGRAM_WEBHOOK_SECRET=local-webhook-secret

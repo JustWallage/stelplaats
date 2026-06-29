@@ -1,0 +1,10 @@
+{
+  "commands": [
+    { "command": "user", "description": "Show the connected account" },
+    {
+      "command": "disconnect",
+      "description": "Disconnect this chat from your account"
+    },
+    { "command": "help", "description": "Show available commands" }
+  ]
+}

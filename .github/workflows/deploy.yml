@@ -123,3 +123,36 @@ jobs:
           put HASS_TOKEN "$HASS_TOKEN"
           put HASS_ACCESS_CLIENT_ID "$HASS_ACCESS_CLIENT_ID"
           put HASS_ACCESS_CLIENT_SECRET "$HASS_ACCESS_CLIENT_SECRET"
+
+      # Telegram bot credentials. Both are optional — when the GitHub secrets are
+      # unset the bot stays disabled (the Telegram client falls back to the no-op
+      # fake and the webhook fails closed). The webhook secret gates
+      # /telegram/webhook; the bot token enables outbound sends.
+      - name: Sync Telegram secrets
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+        run: |
+          put() {
+            if [ -n "$2" ]; then
+              printf '%s' "$2" | pnpm exec wrangler secret put "$1" --env production
+            else
+              echo "skip $1 (GitHub secret not set)"
+            fi
+          }
+          put TELEGRAM_BOT_TOKEN "$TELEGRAM_BOT_TOKEN"
+          put TELEGRAM_WEBHOOK_SECRET "$TELEGRAM_WEBHOOK_SECRET"
+
+      # Register the bot's slash-command list so Telegram shows autocomplete.
+      # Same token guard as above; bot-commands.json is the single source of
+      # truth shared with the worker's in-chat /help.
+      - name: Register Telegram bot commands
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
+            curl -fsS -X POST \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setMyCommands" \
+              -H "Content-Type: application/json" \
+              --data @worker/lib/bot-commands.json
+          fi

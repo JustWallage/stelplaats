@@ -17,6 +17,12 @@ REQUIRED_KEYS=(
   WORKERS_DEV_SUBDOMAIN
 )
 
+# Pushed only when set in .bootstrap.env; absent → the feature stays disabled.
+OPTIONAL_KEYS=(
+  TELEGRAM_BOT_TOKEN
+  TELEGRAM_WEBHOOK_SECRET
+)
+
 say() { printf '\033[1;32m[bootstrap]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[bootstrap]\033[0m %s\n' "$*" >&2; exit 1; }
 
@@ -47,6 +53,14 @@ for key in "${REQUIRED_KEYS[@]}"; do
   # value from stdin; `--body -` would set the literal string "-"
   printf '%s' "${!key}" | gh secret set "$key"
   say "  secret $key set"
+done
+for key in "${OPTIONAL_KEYS[@]}"; do
+  if [ -n "${!key:-}" ]; then
+    printf '%s' "${!key}" | gh secret set "$key"
+    say "  secret $key set"
+  else
+    say "  secret $key not set (optional) — skipping"
+  fi
 done
 
 # --- Local dev ----------------------------------------------------------------
