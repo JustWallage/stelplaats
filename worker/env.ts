@@ -3,7 +3,26 @@
 // ENVIRONMENT is widened to string on purpose: the auth middleware treats any
 // unrecognized value as production (fail closed), so the type must not pretend
 // the value is always one of the configured literals.
-export type Bindings = Omit<Env, "ENVIRONMENT"> & { ENVIRONMENT: string };
+// TELEGRAM_BOT_USERNAME / APP_URL are committed vars; cf-typegen narrows them to
+// their per-env literals, so they are widened back to string here.
+// TELEGRAM_BOT_TOKEN is a secret (not in wrangler vars) — declare it optional;
+// its absence is what flips the Telegram client to the no-op fake (e2e/local).
+// TELEGRAM_WEBHOOK_SECRET is a secret in production but a fixed committed var in
+// the e2e env (so the hermetic suite can drive the webhook); widened to string,
+// and its absence fails the webhook closed.
+export type Bindings = Omit<
+  Env,
+  | "ENVIRONMENT"
+  | "TELEGRAM_BOT_USERNAME"
+  | "APP_URL"
+  | "TELEGRAM_WEBHOOK_SECRET"
+> & {
+  ENVIRONMENT: string;
+  TELEGRAM_BOT_USERNAME: string;
+  APP_URL: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
+};
 
 export interface AppEnv {
   Bindings: Bindings;

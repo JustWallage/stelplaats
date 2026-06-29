@@ -2,7 +2,9 @@
 
 Home-management app (cleaning + plant tasks, live updates) for two users.
 Single Cloudflare Worker serves the React SPA as static assets and the Hono
-API; one Durable Object (`WebsocketDO`) carries ALL realtime updates.
+API; one Durable Object (`WebsocketDO`) carries ALL realtime updates. A daily
+cron sends each linked Telegram chat a 07:00 Amsterdam reminder of the tasks
+due that day (see `worker/CLAUDE.md` → Telegram + the reminder cron).
 [SPEC.md](SPEC.md) is the authoritative design document.
 
 ## Structure

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import app from "../index";
+import { app } from "../index";
 
 const testEnv = {
   ...env,

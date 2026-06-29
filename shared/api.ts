@@ -154,6 +154,25 @@ export const commentListSchema = z.object({
 
 export const okSchema = z.object({ ok: z.literal(true) });
 
+// ---- Telegram ----
+
+export const telegramStatusSchema = z.object({
+  /** Whether a Telegram chat is bound to this account. */
+  linked: z.boolean(),
+  /** Human label for the connected chat ("@handle" or name); null if unknown. */
+  chatLabel: z.string().nullable(),
+});
+export type TelegramStatus = z.infer<typeof telegramStatusSchema>;
+
+export const telegramLinkCodeSchema = z.object({
+  /** One-time code to send the bot as `/start <code>`. */
+  code: z.string(),
+  /** `t.me` deep link, or null when the bot username is not configured. */
+  url: z.string().nullable(),
+  expiresAt: z.iso.datetime(),
+});
+export type TelegramLinkCode = z.infer<typeof telegramLinkCodeSchema>;
+
 export const healthSchema = z.object({
   ok: z.literal(true),
   email: z.string(),

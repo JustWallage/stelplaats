@@ -5,13 +5,21 @@
   "compatibility_date": "2026-06-01",
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"],
+    // /telegram/* (bot webhook) lives outside /api and must hit the worker
+    // rather than fall through to the SPA assets.
+    "run_worker_first": ["/api/*", "/telegram/*"],
   },
   "observability": { "enabled": true },
   "vars": {
     "ENVIRONMENT": "local",
     "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
     "HASS_API_URL": "https://hass-api.justwallage.nl",
+    // APP_URL is the reminder footer link. TELEGRAM_BOT_USERNAME (no `@`) builds
+    // the t.me deep link behind "Link my account"; local points at the real bot
+    // so the connect flow works in `pnpm dev`. The e2e env keeps it empty to
+    // exercise the url: null fallback.
+    "APP_URL": "http://localhost:5173",
+    "TELEGRAM_BOT_USERNAME": "StelplaatsBot",
   },
   "d1_databases": [
     {
@@ -33,6 +41,14 @@
         "ENVIRONMENT": "e2e",
         "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
         "HASS_API_URL": "https://hass-api.justwallage.nl",
+        "APP_URL": "http://localhost:5174",
+        "TELEGRAM_BOT_USERNAME": "",
+        // Committed default so the unit + local e2e suites can drive the bot
+        // webhook (link/disconnect). The Telegram client stays the no-op fake
+        // here (no TELEGRAM_BOT_TOKEN), so no message ever leaves the worker.
+        // The CI ephemeral worker is internet-reachable, so its deploy step
+        // sed-replaces this with a per-run random secret (see ephemeral-e2e.yml).
+        "TELEGRAM_WEBHOOK_SECRET": "e2e-webhook-secret",
       },
       "d1_databases": [
         {
@@ -49,10 +65,18 @@
     // Production: D1 id placeholder substituted by CI from terraform output.
     "production": {
       "name": "stelplaats",
+      // Fires at 05:00 and 06:00 UTC; runDueTaskReminders acts only on the tick
+      // that is 07:00 in Amsterdam (DST guard), so the reminder lands at 07:00
+      // local with a single daily send.
+      "triggers": {
+        "crons": ["0 5,6 * * *"],
+      },
       "vars": {
         "ENVIRONMENT": "production",
         "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
         "HASS_API_URL": "https://hass-api.justwallage.nl",
+        "APP_URL": "https://stelplaats.justwallage.nl",
+        "TELEGRAM_BOT_USERNAME": "StelplaatsBot",
       },
       "d1_databases": [
         {

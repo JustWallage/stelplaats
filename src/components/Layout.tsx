@@ -1,4 +1,4 @@
-import { Brush, House, Leaf, Lightbulb, Wrench, Zap } from "lucide-react";
+import { Brush, House, Leaf, Lightbulb, Send, Wrench, Zap } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 import { useUser } from "@/components/AuthGate";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ const navItems = [
   { to: "/house", label: "House", icon: Wrench },
   { to: "/lights", label: "Lights", icon: Lightbulb },
   { to: "/hass", label: "Hass", icon: Zap },
+  { to: "/telegram", label: "Telegram", icon: Send },
 ];
 
 function NavItems({ orientation }: { orientation: "bottom" | "side" }) {
