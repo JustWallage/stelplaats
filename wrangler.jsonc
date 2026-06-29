@@ -49,6 +49,10 @@
         // The CI ephemeral worker is internet-reachable, so its deploy step
         // sed-replaces this with a per-run random secret (see ephemeral-e2e.yml).
         "TELEGRAM_WEBHOOK_SECRET": "e2e-webhook-secret",
+        // A throwaway VAPID public key so the push UI shows as available in the
+        // e2e suite. No VAPID_PRIVATE_KEY here, so the push sender stays the
+        // no-op fake and nothing is actually delivered.
+        "VAPID_PUBLIC_KEY": "BKBj_WgNVQrSXMD-BWTyEAkVRIE3NKkJip5879ti4abr8ebaPcxK6yzPycsKRThiG7zcJ4FnPFWEP2JqiLLD6Cw",
       },
       "d1_databases": [
         {

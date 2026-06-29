@@ -1,5 +1,11 @@
 import { Hono } from "hono";
-import { comments, completions, tasks, telegram } from "../../db/schema";
+import {
+  comments,
+  completions,
+  pushSubscriptions,
+  tasks,
+  telegram,
+} from "../../db/schema";
 import type { AppEnv } from "../env";
 import { getDb } from "../lib/db";
 
@@ -13,5 +19,6 @@ testResetRoute.post("/", async (c) => {
   await db.delete(completions);
   await db.delete(tasks);
   await db.delete(telegram);
+  await db.delete(pushSubscriptions);
   return c.json({ ok: true });
 });

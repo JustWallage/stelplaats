@@ -173,6 +173,42 @@ export const telegramLinkCodeSchema = z.object({
 });
 export type TelegramLinkCode = z.infer<typeof telegramLinkCodeSchema>;
 
+// ---- Web Push ----
+
+// What GET /api/push reports: the VAPID public key the browser needs to
+// subscribe (null when push is not configured server-side, mirroring the
+// Telegram link `url` fallback), so the UI can show "not available".
+export const pushConfigSchema = z.object({
+  vapidPublicKey: z.string().nullable(),
+});
+
+// A browser PushSubscription as sent to the subscribe endpoint. `endpoint` is
+// the push service URL; `keys` are the client's public key + auth secret used to
+// encrypt each payload.
+export const pushSubscriptionInputSchema = z.object({
+  endpoint: z.url().max(1000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionInputSchema>;
+
+export const pushUnsubscribeSchema = z.object({
+  endpoint: z.url().max(1000),
+});
+
+// The notification body delivered to the service worker. Kept tiny and stable
+// (the SW reads these fields directly); `url` is where a tap navigates. The
+// worker validates every payload against this before encrypting it.
+export const pushPayloadSchema = z.object({
+  title: z.string(),
+  body: z.string(),
+  url: z.string(),
+  tag: z.string(),
+});
+export type PushPayload = z.infer<typeof pushPayloadSchema>;
+
 export const healthSchema = z.object({
   ok: z.literal(true),
   email: z.string(),

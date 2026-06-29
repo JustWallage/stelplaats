@@ -9,11 +9,14 @@
 - Layout: mobile-first (bottom tab bar) WITH desktop breakpoints (`lg:`
   sidebar). Unlike sibling project iglympics, breakpoints are allowed and
   expected here. Nav items live in `components/Layout.tsx` (`navItems`).
-- `pages/TelegramPage.tsx` (the Telegram tab) reads `/api/telegram` status,
-  POSTs `/api/telegram/link-code` to reveal a `/start <code>` connect code (+
-  `t.me` deep link), POSTs `/api/telegram/test`, and `DELETE`s `/api/telegram`
-  behind a `ConfirmDialog`. It is connection-only — the 07:00 reminder schedule
-  is fixed server-side, so there is no times/timezone UI.
+- `pages/SettingsPage.tsx` (the Settings tab) holds three cards: Install (replays
+  the captured `beforeinstallprompt` from `lib/pwa.ts`), Notifications (Web Push
+  for THIS device via `lib/push.ts` — reads `/api/push` for the VAPID key,
+  enable/disable through the SW `PushManager`, `POST /api/push/test`), and
+  Telegram (reads `/api/telegram`, mints a `/start <code>` link, test, disconnect
+  behind a `ConfirmDialog`). Reminder timing is fixed server-side (07:00), so
+  there is no schedule UI. The service worker (`public/sw.js`) handles `push` +
+  `notificationclick`; it is a static asset, exempt from the app lint.
 - `components/ui/` is shadcn-generated (Base UI primitives, NOT Radix —
   triggers use `render={<Button />}`, not `asChild`). It is exempt from lint
   and knip; regenerate via `pnpm dlx shadcn@latest add <name>`, don't hand-edit.

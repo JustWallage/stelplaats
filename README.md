@@ -1,6 +1,6 @@
 # Stelplaats
 
-An actively-used home-management app for two people — track when household chores were done and plants were watered, see what's due or overdue, and watch both screens stay in sync live. It runs as a **single Cloudflare Worker** that serves a React SPA as static assets, a [Hono](https://hono.dev) API, and one [Durable Object](worker/do/WebsocketDO.ts) for realtime updates.
+An actively-used home-management app for two people — track when household chores were done and plants were watered, see what's due or overdue, and watch both screens stay in sync live. It runs as a **single Cloudflare Worker** that serves a React SPA as static assets, a [Hono](https://hono.dev) API, and one [Durable Object](worker/do/WebsocketDO.ts) for realtime updates. It installs as a **PWA on Android** and sends notifications — Web Push and/or Telegram — when a task is due (07:00) and when the other person completes one.
 
 The app is small and in daily use by its two users. What makes the repository worth a look is **how it's built** — and the thread that ties all of it together is a single design goal: make this a codebase that **AI coding agents can work in productively**.
 
@@ -71,6 +71,7 @@ Because the Durable Object is co-located in the same Worker, every ephemeral dep
 - **All identity logic in one file.** [`worker/middleware/auth.ts`](worker/middleware/auth.ts) is the only place that touches authentication; handlers just read the resolved user. It branches per environment (Cloudflare Access in production, a test-token path for E2E, a dev var locally) and **fails closed** — anything unrecognized is treated as production.
 - **Realtime as a typed union.** Every mutation broadcasts a [typed event](shared/) through the [Durable Object](worker/do/WebsocketDO.ts) to all clients; adding an event is a single schema change, typed on both ends. The app degrades gracefully without the socket.
 - **Computed, not stored, due dates.** Due state and its countdown are pure, unit-tested functions in [`shared/due.ts`](shared/due.ts) that branch on task type.
+- **Installable PWA with two notification channels.** A [service worker](public/sw.js) + manifest make it installable on Android; the Worker speaks the Web Push protocol directly ([VAPID + aes128gcm via Web Crypto](worker/lib/push-crypto.ts), no Node deps) and also sends Telegram messages. A daily cron fires both at 07:00 Amsterdam; completing a task notifies the other user.
 
 ## Stack
 
