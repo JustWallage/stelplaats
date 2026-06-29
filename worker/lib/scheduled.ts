@@ -1,5 +1,6 @@
 import type { Bindings } from "../env";
 import { getDb, type Db } from "./db";
+import { getPushSender, sendDueTaskPushNotifications } from "./push";
 import { loadLinkedChatIds } from "./telegram-bot";
 import { loadTasksDueToday } from "./tasks-query";
 import {
@@ -31,7 +32,8 @@ export async function sendDueTaskReminders(
 
 // Cron entry. The trigger fires at 05:00 and 06:00 UTC; only the tick that is
 // 07:00 in Amsterdam acts (DST guard), so the reminder lands at 07:00 local all
-// year with a single daily send.
+// year with a single daily send. Both channels fire: Telegram (one combined
+// message per chat) and Web Push (one notification per due task per device).
 export async function runDueTaskReminders(
   env: Bindings,
   now: Date,
@@ -39,10 +41,14 @@ export async function runDueTaskReminders(
   if (!isAmsterdamReminderHour(now)) {
     return;
   }
-  await sendDueTaskReminders(
-    getDb(env),
-    getTelegramClient(env),
-    env.APP_URL,
-    now,
-  );
+  const db = getDb(env);
+  await Promise.all([
+    sendDueTaskReminders(db, getTelegramClient(env), env.APP_URL, now),
+    sendDueTaskPushNotifications(
+      db,
+      await getPushSender(env),
+      env.APP_URL,
+      now,
+    ),
+  ]);
 }

@@ -15,3 +15,12 @@ HASS_ACCESS_CLIENT_SECRET=replace-with-access-service-token-client-secret
 # webhook locally (any string).
 # TELEGRAM_BOT_TOKEN=replace-with-botfather-token
 # TELEGRAM_WEBHOOK_SECRET=local-webhook-secret
+
+# Web Push / VAPID (optional). Generate a pair with
+# `node scripts/generate-vapid.mjs`. With all three set, GET /api/push exposes
+# the public key and the worker actually delivers notifications; without the
+# private key the push sender is a no-op fake (the subscribe/test flow still
+# works, nothing is delivered).
+# VAPID_PUBLIC_KEY=replace-with-generated-public-key
+# VAPID_PRIVATE_KEY=replace-with-generated-private-scalar
+# VAPID_SUBJECT=mailto:you@example.com

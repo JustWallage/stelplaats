@@ -4,6 +4,7 @@ import type { AppEnv } from "./env";
 import { runDueTaskReminders } from "./lib/scheduled";
 import { commentsRoutes } from "./routes/comments";
 import { hassRoutes } from "./routes/hass";
+import { pushRoutes } from "./routes/push";
 import { tasksRoutes } from "./routes/tasks";
 import { telegramRoutes } from "./routes/telegram";
 import { telegramWebhookRoutes } from "./routes/telegram-webhook";
@@ -35,6 +36,7 @@ app.route("/api/tasks", tasksRoutes);
 app.route("/api/tasks/:id/comments", commentsRoutes);
 app.route("/api/hass", hassRoutes);
 app.route("/api/telegram", telegramRoutes);
+app.route("/api/push", pushRoutes);
 
 // The Telegram webhook cannot present a Cloudflare Access identity, so it sits
 // OUTSIDE /api (no auth middleware) and is guarded by its own secret-token check

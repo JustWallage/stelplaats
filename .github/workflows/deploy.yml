@@ -143,6 +143,26 @@ jobs:
           put TELEGRAM_BOT_TOKEN "$TELEGRAM_BOT_TOKEN"
           put TELEGRAM_WEBHOOK_SECRET "$TELEGRAM_WEBHOOK_SECRET"
 
+      # Web Push (VAPID) credentials. All optional — when unset the push sender
+      # falls back to the no-op fake and GET /api/push reports push unavailable.
+      # Generate once with `node scripts/generate-vapid.mjs`.
+      - name: Sync Web Push secrets
+        env:
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: |
+          put() {
+            if [ -n "$2" ]; then
+              printf '%s' "$2" | pnpm exec wrangler secret put "$1" --env production
+            else
+              echo "skip $1 (GitHub secret not set)"
+            fi
+          }
+          put VAPID_PUBLIC_KEY "$VAPID_PUBLIC_KEY"
+          put VAPID_PRIVATE_KEY "$VAPID_PRIVATE_KEY"
+          put VAPID_SUBJECT "$VAPID_SUBJECT"
+
       # Register the bot's slash-command list so Telegram shows autocomplete.
       # Same token guard as above; bot-commands.json is the single source of
       # truth shared with the worker's in-chat /help.

@@ -5,9 +5,9 @@ import { WebSocketProvider } from "@/context/WebSocketContext";
 import { Dashboard } from "@/pages/Dashboard";
 import { HassPage } from "@/pages/HassPage";
 import { LightsPage } from "@/pages/LightsPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 import { TaskDetailPage } from "@/pages/TaskDetailPage";
 import { TaskListPage } from "@/pages/TaskListPage";
-import { TelegramPage } from "@/pages/TelegramPage";
 
 export function App() {
   return (
@@ -26,7 +26,7 @@ export function App() {
                 <Route path="house" element={<TaskListPage kind="house" />} />
                 <Route path="tasks/:id" element={<TaskDetailPage />} />
                 <Route path="lights" element={<LightsPage />} />
-                <Route path="telegram" element={<TelegramPage />} />
+                <Route path="settings" element={<SettingsPage />} />
               </Route>
               <Route path="hass" element={<HassPage />} />
             </Route>

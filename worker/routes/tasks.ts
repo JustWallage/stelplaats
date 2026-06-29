@@ -16,6 +16,7 @@ import {
 import type { AppEnv } from "../env";
 import { broadcast } from "../lib/broadcast";
 import { getDb, type Db } from "../lib/db";
+import { getPushSender, notifyTaskCompleted } from "../lib/push";
 import { toCompletion, toTaskWithStatus } from "../lib/serialize";
 import { loadTasksWithLastCompletion } from "../lib/tasks-query";
 
@@ -192,6 +193,19 @@ tasksRoutes.post("/:id/complete", async (c) => {
     type: "task_completed",
     payload: { task: payload, completion: toCompletion(completion) },
   });
+  // Notify the other user(s) — never the one who performed the completion.
+  // Best-effort, like broadcast: a push failure must not fail the mutation.
+  try {
+    await notifyTaskCompleted(
+      db,
+      await getPushSender(c.env),
+      payload,
+      c.get("userEmail"),
+      c.env.APP_URL,
+    );
+  } catch {
+    // Push is best-effort; the completion already succeeded.
+  }
   return c.json(payload);
 });
 

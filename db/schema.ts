@@ -58,7 +58,26 @@ export const telegram = sqliteTable(
   (t) => [uniqueIndex("telegram_chat_id_idx").on(t.chatId)],
 );
 
+// One row per browser push subscription (a user may have several devices). The
+// endpoint is the push service URL and is unique, so re-subscribing the same
+// device upserts rather than duplicating; p256dh/auth are the client keys used
+// to encrypt the payload (RFC 8291). A subscription the push service reports as
+// gone (404/410) is deleted on the next send.
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userEmail: text("user_email").notNull(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [uniqueIndex("push_subscriptions_endpoint_idx").on(t.endpoint)],
+);
+
 export type TaskRow = typeof tasks.$inferSelect;
 export type CompletionRow = typeof completions.$inferSelect;
 export type CommentRow = typeof comments.$inferSelect;
 export type TelegramRow = typeof telegram.$inferSelect;
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;

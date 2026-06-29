@@ -10,18 +10,26 @@
 // TELEGRAM_WEBHOOK_SECRET is a secret in production but a fixed committed var in
 // the e2e env (so the hermetic suite can drive the webhook); widened to string,
 // and its absence fails the webhook closed.
+// VAPID_* back Web Push: the public key + private scalar + `mailto:` subject.
+// All optional — their absence flips the push sender to the no-op fake (e2e/
+// local) and makes GET /api/push report push as unavailable. The public key may
+// be a committed var (cf-typegen narrows it to its literal), so it is widened.
 export type Bindings = Omit<
   Env,
   | "ENVIRONMENT"
   | "TELEGRAM_BOT_USERNAME"
   | "APP_URL"
   | "TELEGRAM_WEBHOOK_SECRET"
+  | "VAPID_PUBLIC_KEY"
 > & {
   ENVIRONMENT: string;
   TELEGRAM_BOT_USERNAME: string;
   APP_URL: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
 };
 
 export interface AppEnv {

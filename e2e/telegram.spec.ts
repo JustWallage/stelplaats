@@ -35,7 +35,7 @@ async function linkChat(
 
 test("reveals a Telegram connect code with a copy button", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-write"]);
-  await page.goto("/telegram");
+  await page.goto("/settings");
   await expect(page.getByText(/Connected to Telegram/)).toBeHidden();
 
   await page.getByRole("button", { name: "Generate connect link" }).click();
@@ -52,7 +52,7 @@ test("reveals a Telegram connect code with a copy button", async ({ page }) => {
 test("shows the connected chat once linked", async ({ page, request }) => {
   const { label } = await linkChat(request);
 
-  await page.goto("/telegram");
+  await page.goto("/settings");
   await expect(
     page.getByText(`Connected to Telegram as ${label}.`),
   ).toBeVisible();
@@ -64,7 +64,7 @@ test("shows the connected chat once linked", async ({ page, request }) => {
 test("disconnects Telegram after confirming", async ({ page, request }) => {
   const { label } = await linkChat(request);
 
-  await page.goto("/telegram");
+  await page.goto("/settings");
   await expect(
     page.getByText(`Connected to Telegram as ${label}.`),
   ).toBeVisible();

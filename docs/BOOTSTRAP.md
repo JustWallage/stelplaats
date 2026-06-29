@@ -109,9 +109,36 @@ bot when they are unset).
    The `/telegram/webhook` path is exposed past Cloudflare Access by a Terraform
    "bypass" Access app (it is still gated by the secret token in the worker).
 
-5. Open the app's **Telegram** tab, tap **Generate connect link**, and send the
-   bot `/start <code>` (or open the deep link). The 07:00 reminder cron is
-   already configured in `wrangler.jsonc`.
+5. Open the app's **Settings** tab → Telegram, tap **Generate connect link**, and
+   send the bot `/start <code>` (or open the deep link). The 07:00 reminder cron
+   is already configured in `wrangler.jsonc`.
+
+## Web Push notifications (optional)
+
+The PWA can deliver browser push notifications — one per task due at 07:00
+(alongside Telegram) and one to the _other_ user whenever someone completes a
+task. Delivery needs a VAPID key pair, stored as **GitHub Actions secrets** and
+installed onto the worker by the deploy pipeline (skipped when unset, so push
+just stays unavailable).
+
+1. Generate a pair (once):
+
+   ```sh
+   node scripts/generate-vapid.mjs
+   ```
+
+2. Set the three secrets (use your own `mailto:` for the subject). Either add
+   them to `.bootstrap.env` and re-run `./scripts/bootstrap.sh`, or:
+
+   ```sh
+   gh secret set VAPID_PUBLIC_KEY
+   gh secret set VAPID_PRIVATE_KEY
+   gh secret set VAPID_SUBJECT
+   ```
+
+3. After the next deploy, open **Settings → Notifications** on an Android device
+   (Chrome), tap **Enable notifications**, and accept the permission prompt. Each
+   device subscribes itself; use **Send test notification** to verify.
 
 ## Later: custom domain
 
