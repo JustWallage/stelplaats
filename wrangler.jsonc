@@ -76,7 +76,7 @@
         "ALLOWED_EMAILS": "just@wallage.nl,suusraedts2018@gmail.com",
         "HASS_API_URL": "https://hass-api.justwallage.nl",
         "APP_URL": "https://stelplaats.justwallage.nl",
-        "TELEGRAM_BOT_USERNAME": "StelplaatsBot",
+        "TELEGRAM_BOT_USERNAME": "stelplaats_bot",
       },
       "d1_databases": [
         {
