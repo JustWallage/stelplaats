@@ -38,9 +38,18 @@ function isStandalone(): boolean {
   );
 }
 
-// "Install app" — replays the captured beforeinstallprompt. Hidden once the app
-// runs standalone; falls back to a hint when no prompt is available (e.g. the
-// browser hasn't met its heuristics yet, or it's already installed).
+// The browser's menu path to install, since the one-tap prompt
+// (beforeinstallprompt) is Chromium-only and only fires after an engagement
+// heuristic — Firefox and a fresh Chrome session need the manual route.
+function browserInstallItem(): string {
+  return navigator.userAgent.includes("Firefox")
+    ? "Install…"
+    : "Add to Home screen (or Install app)";
+}
+
+// "Install app" — offers the one-tap prompt when the browser has handed us one,
+// and ALWAYS shows the manual menu path as a fallback (Chrome has no auto
+// pop-up, and Firefox never exposes a programmatic prompt at all).
 function InstallCard() {
   const [available, setAvailable] = useState(installAvailable());
   const [standalone] = useState(isStandalone());
@@ -66,16 +75,20 @@ function InstallCard() {
           experience.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {standalone ? (
           <p className="text-muted-foreground">App is installed. 🎉</p>
-        ) : available ? (
-          <Button onClick={install}>Install app</Button>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Already installed, or not available yet — you can also use your
-            browser menu and choose “Install app” / “Add to Home screen”.
-          </p>
+          <>
+            {available && <Button onClick={install}>Install app</Button>}
+            <p className="text-sm text-muted-foreground">
+              {available
+                ? "No prompt? Install it from your browser instead: open the "
+                : "Install it from your browser: open the "}
+              browser menu (⋮) and tap{" "}
+              <span className="font-medium">{browserInstallItem()}</span>.
+            </p>
+          </>
         )}
       </CardContent>
     </Card>
