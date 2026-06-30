@@ -5,7 +5,7 @@ test("all main pages are mounted side by side in the deck", async ({
 }) => {
   await page.goto("/");
   const deck = page.getByTestId("swipe-deck");
-  await expect(deck.locator("[data-deck-path]")).toHaveCount(6);
+  await expect(deck.locator("[data-deck-path]")).toHaveCount(4);
 });
 
 test("the nav snaps the deck to the chosen page", async ({ page }) => {
@@ -18,7 +18,7 @@ test("the nav snaps the deck to the chosen page", async ({ page }) => {
     .poll(() =>
       deck.evaluate((el) => Math.round(el.scrollLeft / el.clientWidth)),
     )
-    .toBe(5);
+    .toBe(3);
 });
 
 test("side-scrolling the deck navigates without reloading", async ({
@@ -28,8 +28,8 @@ test("side-scrolling the deck navigates without reloading", async ({
 
   const deck = page.getByTestId("swipe-deck");
   await deck.evaluate((el) => {
-    el.scrollTo({ left: el.clientWidth * 2, behavior: "auto" });
+    el.scrollTo({ left: el.clientWidth, behavior: "auto" });
   });
 
-  await expect(page).toHaveURL(/\/plants$/);
+  await expect(page).toHaveURL(/\/tasks$/);
 });

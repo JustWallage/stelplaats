@@ -35,7 +35,7 @@ test("logs a completion under an overridden user", async ({
 }) => {
   const id = await createTask(request, { title: "Refill water filter" });
 
-  await page.goto("/cleaning");
+  await page.goto("/tasks");
   await page
     .getByRole("button", { name: "Complete Refill water filter" })
     .click();
@@ -50,7 +50,7 @@ test("logs a completion under an overridden user", async ({
 test("logs a completion at a chosen date", async ({ page, request }) => {
   const id = await createTask(request, { title: "Bleed the radiators" });
 
-  await page.goto("/cleaning");
+  await page.goto("/tasks");
   await page
     .getByRole("button", { name: "Complete Bleed the radiators" })
     .click();
@@ -106,7 +106,7 @@ test("adds and deletes a comment", async ({ page, request }) => {
 });
 
 test("seeds a first completion from the last-done date", async ({ page }) => {
-  await page.goto("/plants");
+  await page.goto("/tasks");
   await page.getByRole("button", { name: "Add task" }).click();
   await page.getByRole("button", { name: "Scheduled" }).click();
   await page.getByLabel("Title").fill("Fertilise ferns");
@@ -128,10 +128,10 @@ test("archives and restores a task via the archived section", async ({
 }) => {
   await createTask(request, { title: "Wipe the skirting boards" });
 
-  await page.goto("/cleaning");
+  await page.goto("/tasks");
   await visiblePanel(page).getByText("Wipe the skirting boards").click();
   await page.getByRole("button", { name: "Archive task" }).click();
-  await expect(page).toHaveURL(/\/cleaning$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   await expect(
     visiblePanel(page).getByText("Wipe the skirting boards"),
   ).toBeHidden();
@@ -147,26 +147,31 @@ test("archives and restores a task via the archived section", async ({
   ).toBeVisible();
 });
 
-test("creates and lists a house task", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "House" }).click();
-  await expect(page).toHaveURL(/\/house$/);
+test("creates a house task via the category selector", async ({ page }) => {
+  await page.goto("/tasks");
 
   await page.getByRole("button", { name: "Add task" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "House" }).click();
   await page.getByRole("button", { name: "Scheduled" }).click();
   await page.getByLabel("Title").fill("Replace smoke alarm battery");
   await page.getByLabel("Days in between").fill("180");
   await page.getByRole("button", { name: "Create" }).click();
 
+  // It lands on the unified list, and the House filter keeps it visible.
+  await expect(
+    visiblePanel(page).getByText("Replace smoke alarm battery"),
+  ).toBeVisible();
+  await visiblePanel(page).getByRole("button", { name: "House" }).click();
   await expect(
     visiblePanel(page).getByText("Replace smoke alarm battery"),
   ).toBeVisible();
 });
 
-test("back button returns to the kind list", async ({ page, request }) => {
+test("back button returns to the task list", async ({ page, request }) => {
   const id = await createTask(request, { title: "Polish the taps" });
 
   await page.goto(`/tasks/${String(id)}`);
   await page.getByRole("button", { name: "Back" }).click();
-  await expect(page).toHaveURL(/\/cleaning$/);
+  await expect(page).toHaveURL(/\/tasks$/);
 });

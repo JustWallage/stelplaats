@@ -51,7 +51,7 @@ export function TaskDetailPage() {
     apiFetch(`/api/tasks/${id}`, taskWithStatusSchema, {
       ...jsonInit("PATCH", { archived: true }),
     })
-      .then(() => navigate(`/${task.kind}`))
+      .then(() => navigate("/tasks"))
       .catch(refresh)
       .finally(() => {
         setBusy(false);
@@ -72,7 +72,7 @@ export function TaskDetailPage() {
         size="sm"
         className="-ml-2"
         onClick={() => {
-          void navigate(`/${task.kind}`);
+          void navigate("/tasks");
         }}
       >
         <ChevronLeft className="size-4" /> Back
@@ -81,7 +81,7 @@ export function TaskDetailPage() {
       <div>
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{task.title}</h1>
-          <TaskForm kind={task.kind} task={task} onSaved={refresh} />
+          <TaskForm task={task} onSaved={refresh} />
         </div>
         <p className="text-muted-foreground">
           {[task.location, taskTypeLabel(task)]
@@ -117,7 +117,7 @@ export function TaskDetailPage() {
         onDone={() => {
           refresh();
           if (task.type === "one_off") {
-            void navigate(`/${task.kind}`);
+            void navigate("/tasks");
           }
         }}
       />

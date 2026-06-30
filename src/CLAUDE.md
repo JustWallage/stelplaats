@@ -9,12 +9,17 @@
 - Layout: mobile-first (bottom tab bar) WITH desktop breakpoints (`lg:`
   sidebar). Unlike sibling project iglympics, breakpoints are allowed and
   expected here. Nav items live in `components/Layout.tsx` (`navItems`).
+- `pages/TaskListPage.tsx` is the ONE list for every kind: it shows all active
+  tasks and a `KindFilter` chip row (All/Cleaning/Plants/House, single-select)
+  that narrows both the list and the archived section. There are no per-kind
+  routes — `kind` is a task field chosen in `TaskForm` (Category selector), not a
+  page. Creating from a filtered view seeds that kind via `defaultKind`.
 - Main pages are a horizontal swipe pager: `components/SwipeDeck.tsx` renders
-  Home/Cleaning/Plants/House/Lights/Settings as scroll-snap panels (CSS only, no
-  gesture lib) and is the layout-route element for those six paths, so it stays
-  mounted across them — swiping or tapping a tab just scrolls + `navigate()`s,
-  never reloads. `panels` there is the source of order (must match `navItems`).
-  GOTCHA: every panel stays mounted, so a task shows on BOTH its kind list and
+  Home/Tasks/Lights/Settings as scroll-snap panels (CSS only, no gesture lib) and
+  is the layout-route element for those four paths, so it stays mounted across
+  them — swiping or tapping a tab just scrolls + `navigate()`s, never reloads.
+  `panels` there is the source of order (must match `navItems`).
+  GOTCHA: every panel stays mounted, so a task shows on BOTH the Tasks list and
   the dashboard at once — inactive panels are `inert` (out of the a11y tree, so
   `getByRole` is unambiguous) but their text is still in the DOM. Hass (iframe,
   full-bleed) and `tasks/:id` (drill-in) are NOT in the deck — normal routes.

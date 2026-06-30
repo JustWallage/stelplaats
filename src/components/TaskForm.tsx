@@ -19,6 +19,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, jsonInit } from "@/lib/api";
 
+const KIND_OPTIONS: { value: TaskKind; label: string }[] = [
+  { value: "cleaning", label: "Cleaning" },
+  { value: "plants", label: "Plants" },
+  { value: "house", label: "House" },
+];
+
 const TYPE_OPTIONS: { value: TaskType; label: string; hint: string }[] = [
   {
     value: "scheduled",
@@ -41,16 +47,19 @@ const dateToIso = (date: string): string =>
   new Date(`${date}T12:00:00Z`).toISOString();
 
 export function TaskForm({
-  kind,
+  defaultKind,
   task,
   onSaved,
 }: {
-  kind: TaskKind;
-  task?: TaskWithStatus;
+  defaultKind?: TaskKind | undefined;
+  task?: TaskWithStatus | undefined;
   onSaved: () => void;
 }) {
   const isEdit = task !== undefined;
   const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<TaskKind>(
+    task?.kind ?? defaultKind ?? "cleaning",
+  );
   const [type, setType] = useState<TaskType | "">("");
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
@@ -66,6 +75,7 @@ export function TaskForm({
       return;
     }
     setError(null);
+    setKind(task?.kind ?? defaultKind ?? "cleaning");
     setType(task?.type ?? "");
     setTitle(task?.title ?? "");
     setLocation(task?.location ?? "");
@@ -75,7 +85,7 @@ export function TaskForm({
     );
     setDueDate(task?.dueDate ?? "");
     setLastDone("");
-  }, [open, task]);
+  }, [open, task, defaultKind]);
 
   const buildBody = (chosen: TaskType): unknown => {
     const base = {
@@ -145,7 +155,7 @@ export function TaskForm({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit task" : `New ${kind} task`}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit task" : "New task"}</DialogTitle>
         </DialogHeader>
         <form
           onSubmit={(event) => {
@@ -154,6 +164,23 @@ export function TaskForm({
           }}
           className="space-y-4"
         >
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {KIND_OPTIONS.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={kind === option.value ? "default" : "outline"}
+                  onClick={() => {
+                    setKind(option.value);
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="task-title">Title</Label>
             <Input

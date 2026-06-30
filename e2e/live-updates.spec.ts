@@ -27,8 +27,8 @@ test("completing a task live-updates another client via WebSocket", async ({
   await observer.goto("/");
   await expect(visiblePanel(observer).getByText("Dust shelves")).toBeVisible();
 
-  // First client completes the task from the cleaning list (via the modal).
-  await page.goto("/cleaning");
+  // First client completes the task from the tasks list (via the modal).
+  await page.goto("/tasks");
   await page.getByRole("button", { name: "Complete Dust shelves" }).click();
   await page.getByRole("button", { name: "Log it" }).click();
 

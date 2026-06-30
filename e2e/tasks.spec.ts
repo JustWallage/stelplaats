@@ -3,7 +3,7 @@ import { expect, test, visiblePanel } from "./fixtures";
 test("create, complete via modal, inspect history, archive", async ({
   page,
 }) => {
-  await page.goto("/cleaning");
+  await page.goto("/tasks");
 
   // Create (location left empty — it is optional now)
   await page.getByRole("button", { name: "Add task" }).click();
@@ -43,12 +43,12 @@ test("create, complete via modal, inspect history, archive", async ({
 
   // Archive navigates back to the list and the task is gone
   await page.getByRole("button", { name: "Archive task" }).click();
-  await expect(page).toHaveURL(/\/cleaning$/);
+  await expect(page).toHaveURL(/\/tasks$/);
   await expect(visiblePanel(page).getByText("Mop kitchen floor")).toBeHidden();
 });
 
 test("the create dialog requires choosing a type", async ({ page }) => {
-  await page.goto("/house");
+  await page.goto("/tasks");
   await page.getByRole("button", { name: "Add task" }).click();
   await page.getByLabel("Title").fill("Pick a type first");
   await expect(page.getByRole("button", { name: "Create" })).toBeDisabled();
@@ -57,7 +57,7 @@ test("the create dialog requires choosing a type", async ({ page }) => {
 });
 
 test("a one-off is archived once it is completed", async ({ page }) => {
-  await page.goto("/house");
+  await page.goto("/tasks");
   await page.getByRole("button", { name: "Add task" }).click();
   await page.getByRole("button", { name: "One-off" }).click();
   await page.getByLabel("Title").fill("Hang the mirror");
@@ -78,7 +78,7 @@ test("a one-off is archived once it is completed", async ({ page }) => {
 });
 
 test("editing a task can change its type", async ({ page }) => {
-  await page.goto("/cleaning");
+  await page.goto("/tasks");
   await page.getByRole("button", { name: "Add task" }).click();
   await page.getByRole("button", { name: "Scheduled" }).click();
   await page.getByLabel("Title").fill("Clean windows");
@@ -128,7 +128,7 @@ test("dashboard shows upcoming tasks and reflects completion", async ({
   await expect(visiblePanel(page).getByText("3 days left")).toBeVisible();
 });
 
-test("kind list orders tasks soonest-due first, as-needed last", async ({
+test("the list orders tasks soonest-due first, as-needed last", async ({
   page,
   request,
 }) => {
@@ -155,7 +155,7 @@ test("kind list orders tasks soonest-due first, as-needed last", async ({
   });
   await mk("Charlie", { type: "as_needed", lastDoneAt: null });
 
-  await page.goto("/cleaning");
+  await page.goto("/tasks");
   const cards = visiblePanel(page).locator('a[href^="/tasks/"]');
   await expect(cards).toHaveCount(3);
   await expect(cards.nth(0)).toContainText("Alpha");
@@ -163,8 +163,36 @@ test("kind list orders tasks soonest-due first, as-needed last", async ({
   await expect(cards.nth(2)).toContainText("Charlie");
 });
 
+test("category filters narrow the unified list", async ({ page, request }) => {
+  const mk = (title: string, kind: string) =>
+    request.post("/api/tasks", {
+      data: {
+        title,
+        kind,
+        type: "as_needed",
+        location: null,
+        description: null,
+        lastDoneAt: null,
+      },
+    });
+  await mk("Scrub the sink", "cleaning");
+  await mk("Water the orchid", "plants");
+  await mk("Oil the hinges", "house");
+
+  await page.goto("/tasks");
+  const panel = visiblePanel(page);
+  // "All" (default) shows every kind.
+  await expect(panel.locator('a[href^="/tasks/"]')).toHaveCount(3);
+
+  // Selecting a category narrows the list to that kind only.
+  await panel.getByRole("button", { name: "Plants" }).click();
+  const filtered = panel.locator('a[href^="/tasks/"]');
+  await expect(filtered).toHaveCount(1);
+  await expect(filtered.nth(0)).toContainText("Water the orchid");
+});
+
 test("validation errors surface in the create dialog", async ({ page }) => {
-  await page.goto("/plants");
+  await page.goto("/tasks");
   await page.getByRole("button", { name: "Add task" }).click();
   await page.getByRole("button", { name: "Scheduled" }).click();
   // 250 chars passes browser-side constraints but fails the zod max(200).
