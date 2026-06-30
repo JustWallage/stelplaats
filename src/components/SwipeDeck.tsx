@@ -9,9 +9,7 @@ import { TaskListPage } from "@/pages/TaskListPage";
 
 const panels: { path: string; element: ReactNode }[] = [
   { path: "/", element: <Dashboard /> },
-  { path: "/cleaning", element: <TaskListPage kind="cleaning" /> },
-  { path: "/plants", element: <TaskListPage kind="plants" /> },
-  { path: "/house", element: <TaskListPage kind="house" /> },
+  { path: "/tasks", element: <TaskListPage /> },
   { path: "/lights", element: <LightsPage /> },
   { path: "/settings", element: <SettingsPage /> },
 ];

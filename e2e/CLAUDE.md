@@ -20,10 +20,12 @@ themselves (see live-updates.spec.ts).
   Telegram round-trip; the secret is `E2E_WEBHOOK_SECRET` (per-run in CI, else
   the committed `e2e-webhook-secret`).
 - The swipe deck (`src/components/SwipeDeck.tsx`) keeps every main page mounted,
-  so task content appears on both its kind list and the dashboard. Scope
+  so task content appears on both the Tasks list and the dashboard. Scope
   list/dashboard text/`a[href]` queries to `visiblePanel(page)` (from
   `./fixtures` — the non-`inert` panel) or `getByText` matches across panels.
-  `getByRole` is fine unscoped (inactive panels are `inert`). Detail-page
+  `getByRole` is fine unscoped (inactive panels are `inert`); but the `TaskForm`
+  Category buttons (Cleaning/Plants/House) collide by name with the list's filter
+  chips, so scope those to `getByRole("dialog")`. Detail-page
   (`tasks/:id`) and modal content is portal/route-level and unaffected.
 - Tests run with workers: 1 because they share one database. Don't parallelize.
 - Run one spec: `pnpm test:e2e e2e/tasks.spec.ts`.

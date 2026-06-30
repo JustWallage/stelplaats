@@ -13,17 +13,23 @@ import { useCachedFetch } from "@/hooks/useCachedFetch";
 import { useTasks } from "@/hooks/useTasks";
 import { apiFetch, jsonInit } from "@/lib/api";
 
-const titles: Record<TaskKind, string> = {
-  cleaning: "Cleaning",
-  plants: "Plants",
-  house: "House",
-};
+type KindFilter = TaskKind | "all";
 
-function ArchivedSection({ kind }: { kind: TaskKind }) {
+const FILTERS: { value: KindFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "cleaning", label: "Cleaning" },
+  { value: "plants", label: "Plants" },
+  { value: "house", label: "House" },
+];
+
+const matchesFilter = (kind: TaskKind, filter: KindFilter): boolean =>
+  filter === "all" || kind === filter;
+
+function ArchivedSection({ filter }: { filter: KindFilter }) {
   const [open, setOpen] = useState(false);
   const archived = useCachedFetch("/api/tasks?archived=true", taskListSchema);
-  const tasks = (archived.data?.tasks ?? []).filter(
-    (task) => task.kind === kind,
+  const tasks = (archived.data?.tasks ?? []).filter((task) =>
+    matchesFilter(task.kind, filter),
   );
 
   const unarchive = (id: number) => {
@@ -71,9 +77,10 @@ function ArchivedSection({ kind }: { kind: TaskKind }) {
   );
 }
 
-export function TaskListPage({ kind }: { kind: TaskKind }) {
+export function TaskListPage() {
   const { data, loading, error, mutate } = useTasks();
   useTaskEvents(mutate);
+  const [filter, setFilter] = useState<KindFilter>("all");
 
   if (loading) {
     return <p className="text-muted-foreground">Loading…</p>;
@@ -83,19 +90,39 @@ export function TaskListPage({ kind }: { kind: TaskKind }) {
   }
 
   const tasks = sortByDueSoonest(
-    data.tasks.filter((task) => task.kind === kind),
+    data.tasks.filter((task) => matchesFilter(task.kind, filter)),
   );
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{titles[kind]}</h1>
-        <TaskForm kind={kind} onSaved={mutate} />
+        <h1 className="text-2xl font-bold">Tasks</h1>
+        <TaskForm
+          defaultKind={filter === "all" ? undefined : filter}
+          onSaved={mutate}
+        />
+      </div>
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="Filter by category"
+      >
+        {FILTERS.map((option) => (
+          <Button
+            key={option.value}
+            size="sm"
+            variant={filter === option.value ? "default" : "outline"}
+            aria-pressed={filter === option.value}
+            onClick={() => {
+              setFilter(option.value);
+            }}
+          >
+            {option.label}
+          </Button>
+        ))}
       </div>
       {tasks.length === 0 ? (
-        <p className="text-muted-foreground">
-          No tasks yet — add the first one.
-        </p>
+        <p className="text-muted-foreground">No tasks here yet.</p>
       ) : (
         <div className="space-y-2">
           {tasks.map((task) => (
@@ -103,7 +130,7 @@ export function TaskListPage({ kind }: { kind: TaskKind }) {
           ))}
         </div>
       )}
-      <ArchivedSection kind={kind} />
+      <ArchivedSection filter={filter} />
     </div>
   );
 }

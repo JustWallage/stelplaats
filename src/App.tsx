@@ -15,9 +15,7 @@ export function App() {
             <Route element={<Layout />}>
               <Route element={<SwipeDeck />}>
                 <Route index element={null} />
-                <Route path="cleaning" element={null} />
-                <Route path="plants" element={null} />
-                <Route path="house" element={null} />
+                <Route path="tasks" element={null} />
                 <Route path="lights" element={null} />
                 <Route path="settings" element={null} />
               </Route>
