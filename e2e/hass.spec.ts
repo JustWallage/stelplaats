@@ -8,9 +8,12 @@ test("Control page opens the Home Assistant view", async ({ page }) => {
   await expect(page).toHaveURL(/\/hass$/);
 });
 
-test("back button returns from Home Assistant to Control", async ({ page }) => {
-  await page.goto("/hass");
-  await page.getByRole("button", { name: /back/i }).click();
+test("native back returns from Home Assistant to Control", async ({ page }) => {
+  await page.goto("/control");
+  await page.getByRole("button", { name: /open home assistant/i }).click();
+  await expect(page).toHaveURL(/\/hass$/);
+
+  await page.goBack();
   await expect(page).toHaveURL(/\/control$/);
 });
 

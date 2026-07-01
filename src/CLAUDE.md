@@ -27,8 +27,10 @@
   temporary "All lights off" button (`POST /api/hass/scripts/all_lights_off/run`)
   plus an "Open Home Assistant" button that `navigate()`s to `/hass`. Hass is NOT
   a nav tab — it's only reachable from here. `pages/HassPage.tsx` is the full-bleed
-  iframe with a Back button (→ `/control`); the navbar still shows so tabs stay
-  reachable, but since it's outside the deck there's no swipe.
+  iframe (no chrome, to maximise the embed); the navbar still shows so tabs stay
+  reachable, but since it's outside the deck there's no swipe. Leaving is via a
+  navbar item or the platform/browser Back (react-router history), not an in-app
+  button.
 - `pages/SettingsPage.tsx` (the Settings tab) holds three cards: Install (replays
   the captured `beforeinstallprompt` from `lib/pwa.ts`), Notifications (Web Push
   for THIS device via `lib/push.ts` — reads `/api/push` for the VAPID key,
