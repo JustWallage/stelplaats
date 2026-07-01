@@ -15,7 +15,7 @@
   routes — `kind` is a task field chosen in `TaskForm` (Category selector), not a
   page. Creating from a filtered view seeds that kind via `defaultKind`.
 - Main pages are a horizontal swipe pager: `components/SwipeDeck.tsx` renders
-  Home/Tasks/Lights/Settings as scroll-snap panels (CSS only, no gesture lib) and
+  Home/Tasks/Control/Settings as scroll-snap panels (CSS only, no gesture lib) and
   is the layout-route element for those four paths, so it stays mounted across
   them — swiping or tapping a tab just scrolls + `navigate()`s, never reloads.
   `panels` there is the source of order (must match `navItems`).
@@ -23,6 +23,14 @@
   the dashboard at once — inactive panels are `inert` (out of the a11y tree, so
   `getByRole` is unambiguous) but their text is still in the DOM. Hass (iframe,
   full-bleed) and `tasks/:id` (drill-in) are NOT in the deck — normal routes.
+- `pages/ControlPage.tsx` (the Control tab) is the home-automation hub: the
+  temporary "All lights off" button (`POST /api/hass/scripts/all_lights_off/run`)
+  plus an "Open Home Assistant" button that `navigate()`s to `/hass`. Hass is NOT
+  a nav tab — it's only reachable from here. `pages/HassPage.tsx` is the full-bleed
+  iframe (no chrome, to maximise the embed); the navbar still shows so tabs stay
+  reachable, but since it's outside the deck there's no swipe. Leaving is via a
+  navbar item or the platform/browser Back (react-router history), not an in-app
+  button.
 - `pages/SettingsPage.tsx` (the Settings tab) holds three cards: Install (replays
   the captured `beforeinstallprompt` from `lib/pwa.ts`), Notifications (Web Push
   for THIS device via `lib/push.ts` — reads `/api/push` for the VAPID key,

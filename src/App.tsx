@@ -16,7 +16,7 @@ export function App() {
               <Route element={<SwipeDeck />}>
                 <Route index element={null} />
                 <Route path="tasks" element={null} />
-                <Route path="lights" element={null} />
+                <Route path="control" element={null} />
                 <Route path="settings" element={null} />
               </Route>
               <Route element={<ColumnLayout />}>

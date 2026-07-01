@@ -1,12 +1,14 @@
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Zap } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { okSchema } from "@shared/api";
 
 type Status = "idle" | "running" | "done" | "error";
 
-export function LightsPage() {
+export function ControlPage() {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<Status>("idle");
 
   async function allLightsOff() {
@@ -23,7 +25,7 @@ export function LightsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-foreground">Lights</h1>
+      <h1 className="text-xl font-semibold text-foreground">Control</h1>
       <Button
         onClick={() => void allLightsOff()}
         disabled={status === "running"}
@@ -39,6 +41,12 @@ export function LightsPage() {
           Couldn&apos;t reach Home Assistant.
         </p>
       )}
+      <div className="pt-2">
+        <Button variant="outline" onClick={() => void navigate("/hass")}>
+          <Zap className="size-4" />
+          Open Home Assistant
+        </Button>
+      </div>
     </div>
   );
 }

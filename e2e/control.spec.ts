@@ -2,10 +2,10 @@ import { expect, test } from "./fixtures";
 
 const RUN = "**/api/hass/scripts/all_lights_off/run";
 
-test("nav routes to the Lights page", async ({ page }) => {
+test("nav routes to the Control page", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Lights" }).click();
-  await expect(page).toHaveURL(/\/lights$/);
+  await page.getByRole("link", { name: "Control" }).click();
+  await expect(page).toHaveURL(/\/control$/);
 });
 
 test("All lights off triggers the script and confirms", async ({ page }) => {
@@ -17,7 +17,7 @@ test("All lights off triggers the script and confirms", async ({ page }) => {
     }),
   );
 
-  await page.goto("/lights");
+  await page.goto("/control");
   await page.getByRole("button", { name: /all lights off/i }).click();
 
   await expect(page.getByText("Done.")).toBeVisible();
@@ -32,7 +32,7 @@ test("shows an error when Home Assistant is unreachable", async ({ page }) => {
     }),
   );
 
-  await page.goto("/lights");
+  await page.goto("/control");
   await page.getByRole("button", { name: /all lights off/i }).click();
 
   await expect(page.getByText(/couldn't reach home assistant/i)).toBeVisible();

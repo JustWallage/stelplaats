@@ -2,15 +2,15 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ColumnContainer } from "@/components/Layout";
+import { ControlPage } from "@/pages/ControlPage";
 import { Dashboard } from "@/pages/Dashboard";
-import { LightsPage } from "@/pages/LightsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { TaskListPage } from "@/pages/TaskListPage";
 
 const panels: { path: string; element: ReactNode }[] = [
   { path: "/", element: <Dashboard /> },
   { path: "/tasks", element: <TaskListPage /> },
-  { path: "/lights", element: <LightsPage /> },
+  { path: "/control", element: <ControlPage /> },
   { path: "/settings", element: <SettingsPage /> },
 ];
 
