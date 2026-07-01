@@ -2,10 +2,16 @@ import { expect, test } from "./fixtures";
 
 const HASS_URL = "https://hass.justwallage.nl";
 
-test("nav routes to the Home Assistant page", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Hass" }).click();
+test("Control page opens the Home Assistant view", async ({ page }) => {
+  await page.goto("/control");
+  await page.getByRole("button", { name: /open home assistant/i }).click();
   await expect(page).toHaveURL(/\/hass$/);
+});
+
+test("back button returns from Home Assistant to Control", async ({ page }) => {
+  await page.goto("/hass");
+  await page.getByRole("button", { name: /back/i }).click();
+  await expect(page).toHaveURL(/\/control$/);
 });
 
 test("embeds the Home Assistant dashboard", async ({ page }) => {

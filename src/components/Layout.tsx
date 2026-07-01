@@ -1,4 +1,4 @@
-import { House, Lightbulb, ListChecks, Settings, Zap } from "lucide-react";
+import { House, ListChecks, Settings, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { useUser } from "@/components/AuthGate";
@@ -7,8 +7,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", label: "Home", icon: House },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
-  { to: "/lights", label: "Lights", icon: Lightbulb },
-  { to: "/hass", label: "Hass", icon: Zap },
+  { to: "/control", label: "Control", icon: SlidersHorizontal },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
